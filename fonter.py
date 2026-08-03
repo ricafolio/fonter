@@ -193,7 +193,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Font Preview — {count} fonts</title>
-<style>:root{{--bg:#f2f5f6;--panel:#ffffff;--ink:#1a1a1a;--ink-soft:#6b6b6b;--border:#dadfe2;--accent:#2f65d1;--accent-ink:#ffffff;--chip:#f3f6f9;--radius:10px;--shadow:none}}[data-theme="dark"]{{--bg:#16161a;--panel:#1f1f24;--ink:#f0efe9;--ink-soft:#9a9a9f;--border:#313138;--accent:#2f65d1;--accent-ink:#16161a;--chip:#2a2a31;--shadow:none}}*{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;transition:background .2s ease,color .2s ease}}header{{position:sticky;top:0;z-index:50;background:var(--panel);border-bottom:1px solid var(--border);box-shadow:var(--shadow);padding:14px 20px}}.header-row{{display:flex;justify-content: space-between;flex-wrap:wrap;gap:12px;align-items:center;max-width:1400px;margin:0 auto}}.header-title{{font-weight:700;font-size:15px;margin-right:4px;white-space:nowrap}}.header-title span{{color:var(--ink-soft);font-weight:400;font-size:12px;display:block}}.field{{display:flex;flex-direction:column;gap:3px}}.field label{{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft)}}input[type="text"],select{{background:var(--bg);border:1px solid var(--border);color:var(--ink);border-radius:6px;padding:7px 10px;font-size:13px;font-family:inherit}}#sampleText{{min-width:260px;flex:1 1 260px;max-height:2rem}}input[type="range"]{{width:110px;-webkit-appearance:none;appearance:none;height:4px;border-radius:999px;background:var(--border);outline:none;cursor:pointer}}input[type="range"]::-webkit-slider-thumb{{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid var(--panel);cursor:pointer}}input[type="range"]::-moz-range-thumb{{width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid var(--panel);cursor:pointer}}input[type="range"]::-moz-range-track{{height:4px;border-radius:999px;background:var(--border)}}.range-val{{font-size:11px;color:var(--ink-soft);min-width:34px}}.range-wrap{{display:flex;align-items:center;gap:6px}}button{{border:1px solid var(--border);background:var(--chip);color:var(--ink);border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:inherit}}button:hover{{filter:brightness(.95)}}[data-theme="dark"] button:hover{{filter:brightness(1.15)}}button.primary{{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}}button.toggle.active{{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}}.spacer{{flex:1 1 auto}}.count-pill{{font-size:11px;color:var(--ink-soft);white-space:nowrap}}main{{max-width:1400px;margin:24px auto 80px}}#grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}}#grid.list-view{{grid-template-columns:1fr}}.card{{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px}}.card-meta{{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}}.card-name-wrap{{min-width:0}}.card-name{{font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}.card-sub{{font-size:10.5px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}.badges{{display:flex;gap:5px;flex-shrink:0}}.badge{{background:var(--chip);color:var(--ink-soft);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;padding:3px 6px;border-radius:4px;white-space:nowrap}}.badge-active{{color:var(--accent)}}.specimen{{word-wrap:break-word;line-height:1.25;min-height:1.4em}}.card-actions{{display:flex;gap:6px;margin-top:2px}}.card-actions button{{font-size:11px;padding:5px 9px}}.pin-btn.pinned{{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}}footer{{text-align:center;font-size:11px;color:var(--ink-soft);padding:20px}}.empty-state{{text-align:center;padding:60px 20px;color:var(--ink-soft);font-size:13px}}.toast{{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:20px;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;z-index:100}}.toast.show{{opacity:1;transform:translateX(-50%) translateY(0)}}</style>
+<style>:root{{--bg:#f2f5f6;--panel:#ffffff;--ink:#1a1a1a;--ink-soft:#6b6b6b;--border:#dadfe2;--accent:#2f65d1;--accent-ink:#ffffff;--chip:#f3f6f9;--radius:10px;--shadow:none}}[data-theme="dark"]{{--bg:#16161a;--panel:#1f1f24;--ink:#f0efe9;--ink-soft:#9a9a9f;--border:#313138;--accent:#2f65d1;--accent-ink:#16161a;--chip:#2a2a31;--shadow:none}}*{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;transition:background .2s ease,color .2s ease}}header{{position:sticky;top:0;z-index:50;background:var(--panel);border-bottom:1px solid var(--border);box-shadow:var(--shadow);padding:14px 20px}}.header-row{{display:flex;justify-content: space-between;flex-wrap:wrap;gap:12px;align-items:center;max-width:1400px;margin:0 auto}}.header-title{{font-weight:700;font-size:15px;margin-right:4px;white-space:nowrap}}.header-title span{{color:var(--ink-soft);font-weight:400;font-size:12px;display:block}}.field{{display:flex;flex-direction:column;gap:3px}}.field label{{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft)}}input[type="text"],select{{background:var(--bg);border:1px solid var(--border);color:var(--ink);border-radius:6px;padding:7px 10px;font-size:13px;font-family:inherit}}#sampleText{{min-width:260px;flex:1 1 260px;max-height:2rem}}input[type="range"]{{width:110px;-webkit-appearance:none;appearance:none;height:4px;border-radius:999px;background:var(--border);outline:none;cursor:pointer}}input[type="range"]::-webkit-slider-thumb{{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid var(--panel);cursor:pointer}}input[type="range"]::-moz-range-thumb{{width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid var(--panel);cursor:pointer}}input[type="range"]::-moz-range-track{{height:4px;border-radius:999px;background:var(--border)}}.range-val{{font-size:11px;color:var(--ink-soft);min-width:34px}}.range-wrap{{display:flex;align-items:center;gap:6px}}button{{border:1px solid var(--border);background:var(--chip);color:var(--ink);border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:inherit}}button:hover{{filter:brightness(.95)}}[data-theme="dark"] button:hover{{filter:brightness(1.15)}}button.primary{{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}}button.toggle.active{{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}}.spacer{{flex:1 1 auto}}.count-pill{{font-size:11px;color:var(--ink-soft);white-space:nowrap}}main{{max-width:1400px;margin:24px auto 80px}}#grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}}#grid.list-view{{grid-template-columns:1fr}}.card{{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px}}.card-meta{{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}}.card-name-wrap{{min-width:0}}.card-name{{font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}.card-sub{{font-size:10.5px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}.badges{{display:flex;gap:5px;flex-shrink:0}}.badge{{background:var(--chip);color:var(--ink-soft);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;padding:3px 6px;border-radius:4px;white-space:nowrap}}.badge-active{{color:var(--accent)}}.specimen{{word-wrap:break-word;line-height:1.25;min-height:1.4em}}.card-actions{{display:flex;gap:6px;margin-top:2px}}.card-actions button{{font-size:11px;padding:5px 9px}}.pin-btn.pinned{{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}}footer{{text-align:center;font-size:11px;color:var(--ink-soft);padding:20px}}.empty-state{{text-align:center;padding:60px 20px;color:var(--ink-soft);font-size:13px}}.toast{{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:20px;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;z-index:100}}.toast.show{{opacity:1;transform:translateX(-50%) translateY(0)}}.focus-mode{{display:none;flex-direction:column;align-items:center;justify-content:center;gap:6rem;min-height:calc(100vh - 200px);text-align:center;padding:20px}}.focus-mode.active{{display:flex;justify-content:flex-start}}.focus-top{{display:flex;align-items:center;gap:14px;align-self:flex-start;flex-wrap:wrap}}.focus-meta{{display:flex;flex-direction:column;gap:2px;text-align:left}}.focus-sub{{font-size:10.5px;color:var(--ink-soft)}}.focus-actions{{display:flex;gap:6px;margin-left:auto}}.focus-label{{font-size:13px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em}}.focus-text{{font-size:clamp(40px,8vw,140px);line-height:1.15;outline:none;max-width:100%;word-wrap:break-word;cursor:text}}.focus-controls{{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;padding-top:8px;border-top:1px solid var(--border);width:100%;max-width:600px}}.focus-text:empty::before{{content:'Type something…';color:var(--ink-soft)}}</style>
 </head>
 <body data-theme="light">
 
@@ -287,6 +287,45 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <main>
   <div id="grid"></div>
   <div class="empty-state" id="emptyState" style="display:none;">No fonts match your filter.</div>
+
+  <div id="focusMode" class="focus-mode">
+    <div class="focus-top">
+      <button id="focusBackBtn">← Back</button>
+      <div class="focus-meta">
+        <div class="focus-label" id="focusLabel"></div>
+        <div class="focus-sub" id="focusSub"></div>
+      </div>
+      <div class="focus-actions">
+        <button id="focusPinBtn"></button>
+        <button id="focusFaceBtn">Copy @font-face</button>
+      </div>
+    </div>
+    <div id="focusText" class="focus-text" contenteditable="true" spellcheck="false"></div>
+
+    <div class="focus-controls">
+      <div class="field">
+        <label for="focusSize">Size</label>
+        <div class="range-wrap">
+          <input type="range" id="focusSize" min="12" max="300" value="96">
+          <span class="range-val" id="focusSizeVal">96px</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="focusTracking">Tracking</label>
+        <div class="range-wrap">
+          <input type="range" id="focusTracking" min="-5" max="20" value="0">
+          <span class="range-val" id="focusTrackingVal">0px</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="focusLeading">Leading</label>
+        <div class="range-wrap">
+          <input type="range" id="focusLeading" min="80" max="200" value="115">
+          <span class="range-val" id="focusLeadingVal">1.15</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </main>
 
 <footer>Generated locally {count} font files from {zip_count} zip file(s).</footer>
@@ -334,6 +373,16 @@ const styleEl = document.getElementById('fontFaceStyles');
 
 const grid = document.getElementById('grid');
 const emptyState = document.getElementById('emptyState');
+const focusModeEl = document.getElementById('focusMode');
+const focusTextEl = document.getElementById('focusText');
+const focusLabelEl = document.getElementById('focusLabel');
+const focusSubEl = document.getElementById('focusSub');
+const focusPinBtn = document.getElementById('focusPinBtn');
+const focusFaceBtn = document.getElementById('focusFaceBtn');
+const focusBackBtn = document.getElementById('focusBackBtn');
+const focusSizeEl = document.getElementById('focusSize');
+const focusTrackingEl = document.getElementById('focusTracking');
+const focusLeadingEl = document.getElementById('focusLeading');
 const sampleTextEl = document.getElementById('sampleText');
 const fontSizeEl = document.getElementById('fontSize');
 const letterSpacingEl = document.getElementById('letterSpacing');
@@ -386,6 +435,73 @@ function currentSampleText(fontDisplayName) {{
   if (preset === 'name') return fontDisplayName;
   return sampleTextEl.value || 'Type something above';
 }}
+
+function updateFocusPinBtn(f) {{
+  focusPinBtn.className = 'pin-btn' + (pinned.has(f.id) ? ' pinned' : '');
+  focusPinBtn.textContent = pinned.has(f.id) ? '★ Pinned' : '☆ Pin';
+}}
+
+function applyFocusStyles() {{
+  focusTextEl.style.fontSize = focusSizeEl.value + 'px';
+  focusTextEl.style.letterSpacing = focusTrackingEl.value + 'px';
+  focusTextEl.style.lineHeight = (focusLeadingEl.value / 100);
+}}
+
+focusSizeEl.addEventListener('input', () => {{
+  document.getElementById('focusSizeVal').textContent = focusSizeEl.value + 'px';
+  applyFocusStyles();
+}});
+focusTrackingEl.addEventListener('input', () => {{
+  document.getElementById('focusTrackingVal').textContent = focusTrackingEl.value + 'px';
+  applyFocusStyles();
+}});
+focusLeadingEl.addEventListener('input', () => {{
+  document.getElementById('focusLeadingVal').textContent = (focusLeadingEl.value / 100).toFixed(2);
+  applyFocusStyles();
+}});
+
+function enterFocus(f) {{
+  const formats = orderedFormats(f, formatPreference);
+  const active = formats[0];
+
+  focusModeEl.dataset.fontId = f.id;
+  focusLabelEl.textContent = f.display_name;
+  focusSubEl.textContent = `${{active.file}} · ${{active.size_kb}} KB · from ${{active.source_zip}}`;
+  focusTextEl.style.fontFamily = `"${{f.family}}"`;
+  if (!focusTextEl.textContent.trim()) {{
+    focusTextEl.textContent = sampleTextEl.value || 'The quick brown fox jumps over the lazy dog';
+  }}
+
+  updateFocusPinBtn(f);
+  focusPinBtn.onclick = () => {{
+    if (pinned.has(f.id)) {{ pinned.delete(f.id); }} else {{ pinned.add(f.id); }}
+    savePinned();
+    updateFocusPinBtn(f);
+  }};
+
+  focusFaceBtn.onclick = () => {{
+    const srcList = formats.map(fmt => `url("fonts/${{fmt.file}}") format("${{fmt.format}}")`).join(',\\n       ');
+    copyText(
+      `@font-face {{\\n  font-family: "${{f.family}}";\\n  src: ${{srcList}};\\n  font-weight: ${{f.weight}};\\n  font-style: ${{f.style}};\\n}}`,
+      'Copied @font-face rule'
+    );
+  }};
+
+  grid.style.display = 'none';
+  emptyState.style.display = 'none';
+  focusModeEl.classList.add('active');
+  window.scrollTo({{ top: 0, behavior: 'smooth' }});
+  applyFocusStyles();
+  focusTextEl.focus();
+}}
+
+function exitFocus() {{
+  focusModeEl.classList.remove('active');
+  grid.style.display = '';
+  render();
+}}
+
+focusBackBtn.addEventListener('click', exitFocus);
 
 function buildCard(f) {{
   const formats = orderedFormats(f, formatPreference);
@@ -459,6 +575,12 @@ function buildCard(f) {{
     render();
   }};
   actions.appendChild(hideBtn);
+
+  const playBtn = document.createElement('button');
+  playBtn.textContent = '▶ Play';
+  playBtn.title = 'Focus mode: big editable preview';
+  playBtn.onclick = () => enterFocus(f);
+  actions.appendChild(playBtn);
 
   card.appendChild(meta);
   card.appendChild(specimen);
