@@ -86,6 +86,46 @@ def unique_dest_path(dest_dir: Path, filename: str) -> Path:
         n += 1
 
 
+def merge_duplicate_formats(entries):
+    """Merge entries that are the same font shipped in multiple file formats
+    (e.g. Roboto-Bold.otf + Roboto-Bold.ttf) into a single manifest item with
+    a `formats` list, instead of showing duplicate preview cards."""
+    groups = {}
+    order = []
+    for e in entries:
+        key = (e["display_name"].lower(), e["weight"], e["style"])
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(e)
+
+    merged = []
+    idx = 0
+    for key in order:
+        group = groups[key]
+        idx += 1
+        primary = group[0]
+        formats = [{
+            "file": g["file"],
+            "ext": g["ext"],
+            "format": g["format"],
+            "size_kb": g["size_kb"],
+            "source_zip": g["source_zip"],
+            "source_path": g["source_path"],
+        } for g in group]
+        merged.append({
+            "id": idx,
+            "family": primary["family"],
+            "display_name": primary["display_name"],
+            "weight": primary["weight"],
+            "style": primary["style"],
+            "source_zip": primary["source_zip"],
+            "size_kb": primary["size_kb"],
+            "formats": formats,
+        })
+    return merged
+
+
 def extract_fonts(zip_files, fonts_dir: Path):
     manifest = []
     errors = []
@@ -143,6 +183,7 @@ def extract_fonts(zip_files, fonts_dir: Path):
             errors.append(f"{zpath.name}: unexpected error ({e})")
 
     manifest.sort(key=lambda m: m["display_name"].lower())
+    manifest = merge_duplicate_formats(manifest)
     return manifest, errors
 
 
@@ -152,216 +193,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Font Preview — {count} fonts</title>
-<style>
-  :root {{
-    --bg: #f5f4f1;
-    --panel: #ffffff;
-    --ink: #1a1a1a;
-    --ink-soft: #6b6b6b;
-    --border: #e2e0da;
-    --accent: #d1502f;
-    --accent-ink: #ffffff;
-    --chip: #efece5;
-    --radius: 10px;
-    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.04);
-  }}
-  [data-theme="dark"] {{
-    --bg: #16161a;
-    --panel: #1f1f24;
-    --ink: #f0efe9;
-    --ink-soft: #9a9a9f;
-    --border: #313138;
-    --accent: #e2724a;
-    --accent-ink: #16161a;
-    --chip: #2a2a31;
-    --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.25);
-  }}
-  * {{ box-sizing: border-box; }}
-  body {{
-    margin: 0;
-    background: var(--bg);
-    color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    transition: background .2s ease, color .2s ease;
-  }}
-  header {{
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    background: var(--panel);
-    border-bottom: 1px solid var(--border);
-    box-shadow: var(--shadow);
-    padding: 14px 20px;
-  }}
-  .header-row {{
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: center;
-    max-width: 1400px;
-    margin: 0 auto;
-  }}
-  .header-title {{
-    font-weight: 700;
-    font-size: 15px;
-    margin-right: 4px;
-    white-space: nowrap;
-  }}
-  .header-title span {{
-    color: var(--ink-soft);
-    font-weight: 400;
-    font-size: 12px;
-    display: block;
-  }}
-  .field {{
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }}
-  .field label {{
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--ink-soft);
-  }}
-  input[type="text"], select {{
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--ink);
-    border-radius: 6px;
-    padding: 7px 10px;
-    font-size: 13px;
-    font-family: inherit;
-  }}
-  #sampleText {{ min-width: 260px; flex: 1 1 260px; max-height: 2rem; }}
-  input[type="range"] {{ width: 110px; }}
-  .range-val {{ font-size: 11px; color: var(--ink-soft); min-width: 34px; }}
-  .range-wrap {{ display: flex; align-items: center; gap: 6px; }}
-  button {{
-    border: 1px solid var(--border);
-    background: var(--chip);
-    color: var(--ink);
-    border-radius: 6px;
-    padding: 7px 12px;
-    font-size: 12px;
-    cursor: pointer;
-    font-family: inherit;
-  }}
-  button:hover {{ filter: brightness(0.95); }}
-  [data-theme="dark"] button:hover {{ filter: brightness(1.15); }}
-  button.primary {{ background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }}
-  button.toggle.active {{ background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }}
-  .spacer {{ flex: 1 1 auto; }}
-  .count-pill {{
-    font-size: 11px;
-    color: var(--ink-soft);
-    white-space: nowrap;
-  }}
-  main {{
-    max-width: 1400px;
-    margin: 24px auto 80px;
-    padding: 0 20px;
-  }}
-  #grid {{
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 16px;
-  }}
-  #grid.list-view {{
-    grid-template-columns: 1fr;
-  }}
-  .card {{
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px 18px;
-    box-shadow: var(--shadow);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }}
-  .card-meta {{
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 8px;
-  }}
-  .card-name-wrap {{ min-width: 0; }}
-  .card-name {{
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }}
-  .card-sub {{
-    font-size: 10.5px;
-    color: var(--ink-soft);
-    margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }}
-  .badges {{ display: flex; gap: 5px; flex-shrink: 0; }}
-  .badge {{
-    background: var(--chip);
-    color: var(--ink-soft);
-    font-size: 9.5px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 3px 6px;
-    border-radius: 4px;
-    white-space: nowrap;
-  }}
-  .specimen {{
-    word-wrap: break-word;
-    line-height: 1.25;
-    min-height: 1.4em;
-  }}
-  .card-actions {{
-    display: flex;
-    gap: 6px;
-    margin-top: 2px;
-  }}
-  .card-actions button {{ font-size: 11px; padding: 5px 9px; }}
-  .pin-btn.pinned {{ background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }}
-  footer {{
-    text-align: center;
-    font-size: 11px;
-    color: var(--ink-soft);
-    padding: 20px;
-  }}
-  .empty-state {{
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--ink-soft);
-    font-size: 13px;
-  }}
-  .toast {{
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: var(--ink);
-    color: var(--bg);
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 12px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity .2s ease, transform .2s ease;
-    z-index: 100;
-  }}
-  .toast.show {{ opacity: 1; transform: translateX(-50%) translateY(0); }}
-</style>
+<style>:root{{--bg:#f2f5f6;--panel:#ffffff;--ink:#1a1a1a;--ink-soft:#6b6b6b;--border:#dadfe2;--accent:#2f65d1;--accent-ink:#ffffff;--chip:#f3f6f9;--radius:10px;--shadow:none}}[data-theme="dark"]{{--bg:#16161a;--panel:#1f1f24;--ink:#f0efe9;--ink-soft:#9a9a9f;--border:#313138;--accent:#2f65d1;--accent-ink:#16161a;--chip:#2a2a31;--shadow:none}}*{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;transition:background .2s ease,color .2s ease}}header{{position:sticky;top:0;z-index:50;background:var(--panel);border-bottom:1px solid var(--border);box-shadow:var(--shadow);padding:14px 20px}}.header-row{{display:flex;justify-content: space-between;flex-wrap:wrap;gap:12px;align-items:center;max-width:1400px;margin:0 auto}}.header-title{{font-weight:700;font-size:15px;margin-right:4px;white-space:nowrap}}.header-title span{{color:var(--ink-soft);font-weight:400;font-size:12px;display:block}}.field{{display:flex;flex-direction:column;gap:3px}}.field label{{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft)}}input[type="text"],select{{background:var(--bg);border:1px solid var(--border);color:var(--ink);border-radius:6px;padding:7px 10px;font-size:13px;font-family:inherit}}#sampleText{{min-width:260px;flex:1 1 260px;max-height:2rem}}input[type="range"]{{width:110px;-webkit-appearance:none;appearance:none;height:4px;border-radius:999px;background:var(--border);outline:none;cursor:pointer}}input[type="range"]::-webkit-slider-thumb{{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid var(--panel);cursor:pointer}}input[type="range"]::-moz-range-thumb{{width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid var(--panel);cursor:pointer}}input[type="range"]::-moz-range-track{{height:4px;border-radius:999px;background:var(--border)}}.range-val{{font-size:11px;color:var(--ink-soft);min-width:34px}}.range-wrap{{display:flex;align-items:center;gap:6px}}button{{border:1px solid var(--border);background:var(--chip);color:var(--ink);border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:inherit}}button:hover{{filter:brightness(.95)}}[data-theme="dark"] button:hover{{filter:brightness(1.15)}}button.primary{{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}}button.toggle.active{{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}}.spacer{{flex:1 1 auto}}.count-pill{{font-size:11px;color:var(--ink-soft);white-space:nowrap}}main{{max-width:1400px;margin:24px auto 80px}}#grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}}#grid.list-view{{grid-template-columns:1fr}}.card{{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px}}.card-meta{{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}}.card-name-wrap{{min-width:0}}.card-name{{font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}.card-sub{{font-size:10.5px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}.badges{{display:flex;gap:5px;flex-shrink:0}}.badge{{background:var(--chip);color:var(--ink-soft);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;padding:3px 6px;border-radius:4px;white-space:nowrap}}.badge-active{{color:var(--accent)}}.specimen{{word-wrap:break-word;line-height:1.25;min-height:1.4em}}.card-actions{{display:flex;gap:6px;margin-top:2px}}.card-actions button{{font-size:11px;padding:5px 9px}}.pin-btn.pinned{{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}}footer{{text-align:center;font-size:11px;color:var(--ink-soft);padding:20px}}.empty-state{{text-align:center;padding:60px 20px;color:var(--ink-soft);font-size:13px}}.toast{{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:20px;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;z-index:100}}.toast.show{{opacity:1;transform:translateX(-50%) translateY(0)}}</style>
 </head>
 <body data-theme="light">
 
 <header>
   <div class="header-row">
-    <div class="header-title">Font Preview<span>{count} fonts loaded</span></div>
-
     <div class="field">
       <label for="sampleText">Preview text</label>
       <input type="text" id="sampleText" value="The quick brown fox jumps over the lazy dog — 0123456789">
@@ -405,7 +242,18 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
     <div class="field">
       <label for="searchBox">Filter</label>
-      <input type="text" id="searchBox" placeholder="Search name, file, weight…" style="min-width:160px;">
+      <input type="text" id="searchBox" placeholder="Search name, file, weight…" style="min-width:160px;height:2rem;">
+    </div>
+
+    <div class="field">
+      <label for="formatSelect">Format</label>
+      <select id="formatSelect">
+        <option value="auto">Auto</option>
+        <option value="otf">Prefer OTF</option>
+        <option value="ttf">Prefer TTF</option>
+        <option value="woff2">Prefer WOFF2</option>
+        <option value="woff">Prefer WOFF</option>
+      </select>
     </div>
 
     <div class="field">
@@ -440,7 +288,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <div class="empty-state" id="emptyState" style="display:none;">No fonts match your filter.</div>
 </main>
 
-<footer>Generated locally — {count} font files from {zip_count} zip file(s). Nothing here touches the network.</footer>
+<footer>Generated locally {count} font files from {zip_count} zip file(s).</footer>
 <div class="toast" id="toast"></div>
 
 <style id="fontFaceStyles"></style>
@@ -456,16 +304,32 @@ const PRESETS = {{
   name: "__NAME__"
 }};
 
-// Build @font-face rules
-const styleEl = document.getElementById('fontFaceStyles');
-styleEl.textContent = FONTS.map(f => `
+// Order a font's available formats according to the current preference,
+// so the preferred format is first (and used as the src the browser loads).
+function orderedFormats(f, preference) {{
+  const formats = f.formats.slice();
+  if (preference && preference !== 'auto') {{
+    formats.sort((a, b) => (a.ext === preference ? -1 : 0) - (b.ext === preference ? -1 : 0));
+  }}
+  return formats;
+}}
+
+function buildFontFaceCSS(preference) {{
+  return FONTS.map(f => {{
+    const formats = orderedFormats(f, preference);
+    const srcList = formats.map(fmt => `url("fonts/${{encodeURIComponent(fmt.file)}}") format("${{fmt.format}}")`).join(",\\n       ");
+    return `
 @font-face {{
   font-family: "${{f.family}}";
-  src: url("fonts/${{encodeURIComponent(f.file)}}") format("${{f.format}}");
+  src: ${{srcList}};
   font-weight: ${{f.weight}};
   font-style: ${{f.style}};
   font-display: swap;
-}}`).join("\\n");
+}}`;
+  }}).join("\\n");
+}}
+
+const styleEl = document.getElementById('fontFaceStyles');
 
 const grid = document.getElementById('grid');
 const emptyState = document.getElementById('emptyState');
@@ -474,6 +338,7 @@ const fontSizeEl = document.getElementById('fontSize');
 const letterSpacingEl = document.getElementById('letterSpacing');
 const lineHeightEl = document.getElementById('lineHeight');
 const searchBoxEl = document.getElementById('searchBox');
+const formatSelectEl = document.getElementById('formatSelect');
 const sortSelectEl = document.getElementById('sortSelect');
 const presetSelectEl = document.getElementById('presetSelect');
 const boldToggleEl = document.getElementById('boldToggle');
@@ -489,6 +354,9 @@ let forceBold = false;
 let forceItalic = false;
 let pinnedOnly = false;
 let listView = false;
+let formatPreference = 'auto';
+
+styleEl.textContent = buildFontFaceCSS(formatPreference);
 
 function savePinned() {{
   localStorage.setItem('fontPreview.pinned', JSON.stringify([...pinned]));
@@ -512,6 +380,9 @@ function currentSampleText(fontDisplayName) {{
 }}
 
 function buildCard(f) {{
+  const formats = orderedFormats(f, formatPreference);
+  const active = formats[0];
+
   const card = document.createElement('div');
   card.className = 'card';
   card.dataset.id = f.id;
@@ -528,14 +399,17 @@ function buildCard(f) {{
   nameEl.onclick = () => copyText(`font-family: "${{f.family}}";`, `Copied CSS for ${{f.display_name}}`);
   const subEl = document.createElement('div');
   subEl.className = 'card-sub';
-  subEl.textContent = `${{f.file}} · ${{f.size_kb}} KB · from ${{f.source_zip}}`;
+  subEl.textContent = `${{active.file}} · ${{active.size_kb}} KB · from ${{active.source_zip}}`;
   subEl.title = subEl.textContent;
   nameWrap.appendChild(nameEl);
   nameWrap.appendChild(subEl);
 
   const badges = document.createElement('div');
   badges.className = 'badges';
-  badges.innerHTML = `<span class="badge">${{f.ext}}</span><span class="badge">${{f.weight}}</span>` + (f.style === 'italic' ? '<span class="badge">italic</span>' : '');
+  const formatBadges = formats.map(fmt =>
+    `<span class="badge${{fmt === active ? ' badge-active' : ''}}">${{fmt.ext}}</span>`
+  ).join('');
+  badges.innerHTML = formatBadges + `<span class="badge">${{f.weight}}</span>` + (f.style === 'italic' ? '<span class="badge">italic</span>' : '');
 
   meta.appendChild(nameWrap);
   meta.appendChild(badges);
@@ -557,10 +431,13 @@ function buildCard(f) {{
   }};
   const faceBtn = document.createElement('button');
   faceBtn.textContent = 'Copy @font-face';
-  faceBtn.onclick = () => copyText(
-    `@font-face {{\\n  font-family: "${{f.family}}";\\n  src: url("fonts/${{f.file}}") format("${{f.format}}");\\n  font-weight: ${{f.weight}};\\n  font-style: ${{f.style}};\\n}}`,
-    'Copied @font-face rule'
-  );
+  faceBtn.onclick = () => {{
+    const srcList = formats.map(fmt => `url("fonts/${{fmt.file}}") format("${{fmt.format}}")`).join(',\\n       ');
+    copyText(
+      `@font-face {{\\n  font-family: "${{f.family}}";\\n  src: ${{srcList}};\\n  font-weight: ${{f.weight}};\\n  font-style: ${{f.style}};\\n}}`,
+      'Copied @font-face rule'
+    );
+  }};
   actions.appendChild(pinBtn);
   actions.appendChild(faceBtn);
 
@@ -597,7 +474,7 @@ function render() {{
     if (pinnedOnly && !pinned.has(f.id)) return false;
     if (!query) return true;
     return f.display_name.toLowerCase().includes(query)
-      || f.file.toLowerCase().includes(query)
+      || f.formats.some(fmt => fmt.file.toLowerCase().includes(query) || fmt.ext.includes(query))
       || f.source_zip.toLowerCase().includes(query)
       || String(f.weight).includes(query)
       || f.style.includes(query);
@@ -636,6 +513,11 @@ lineHeightEl.addEventListener('input', () => {{
   applySpecimenStyles();
 }});
 searchBoxEl.addEventListener('input', render);
+formatSelectEl.addEventListener('change', () => {{
+  formatPreference = formatSelectEl.value;
+  styleEl.textContent = buildFontFaceCSS(formatPreference);
+  render();
+}});
 sortSelectEl.addEventListener('change', render);
 presetSelectEl.addEventListener('change', () => {{
   const val = presetSelectEl.value;
