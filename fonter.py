@@ -67,10 +67,11 @@ def guess_weight_style(stem: str):
     return weight, style
 
 
-def sanitize_css_family(name: str, idx: int) -> str:
-    slug = re.sub(r"[^a-zA-Z0-9]+", "_", name).strip("_")
+def generate_stable_id(name: str, weight: int, style: str) -> str:
+    """Creates a stable slug based on font identity rather than sequential order."""
+    slug = re.sub(r"[^a-zA-Z0-9]+", "_", name.lower()).strip("_")
     slug = slug or "font"
-    return f"f{idx}_{slug}"
+    return f"{slug}_{weight}_{style}"
 
 
 def unique_dest_path(dest_dir: Path, filename: str) -> Path:
@@ -100,10 +101,8 @@ def merge_duplicate_formats(entries):
         groups[key].append(e)
 
     merged = []
-    idx = 0
     for key in order:
         group = groups[key]
-        idx += 1
         primary = group[0]
         formats = [{
             "file": g["file"],
@@ -113,8 +112,9 @@ def merge_duplicate_formats(entries):
             "source_zip": g["source_zip"],
             "source_path": g["source_path"],
         } for g in group]
+        
         merged.append({
-            "id": idx,
+            "id": primary["family"], # Use the stable string as the JS identifier
             "family": primary["family"],
             "display_name": primary["display_name"],
             "weight": primary["weight"],
@@ -126,10 +126,28 @@ def merge_duplicate_formats(entries):
     return merged
 
 
+def build_manifest_entry(dest_path: Path, orig_stem: str, ext: str, data_len: int, source_zip: str, source_path: str):
+    display_name = clean_display_name(orig_stem)
+    weight, style = guess_weight_style(orig_stem)
+    stable_id = generate_stable_id(display_name, weight, style)
+    
+    return {
+        "family": stable_id,
+        "display_name": display_name,
+        "file": dest_path.name,
+        "ext": ext.lstrip("."),
+        "format": FORMAT_MAP[ext],
+        "weight": weight,
+        "style": style,
+        "source_zip": source_zip,
+        "source_path": source_path,
+        "size_kb": round(data_len / 1024, 1),
+    }
+
+
 def extract_fonts(zip_files, fonts_dir: Path):
     manifest = []
     errors = []
-    idx = 0
 
     for zpath in zip_files:
         try:
@@ -155,35 +173,64 @@ def extract_fonts(zip_files, fonts_dir: Path):
                         continue
 
                     orig_name = Path(inner_path).name
+                    orig_stem = Path(orig_name).stem
                     dest_path = unique_dest_path(fonts_dir, orig_name)
                     dest_path.write_bytes(data)
 
-                    stem = dest_path.stem
-                    display_name = clean_display_name(stem)
-                    weight, style = guess_weight_style(stem)
-                    css_family = sanitize_css_family(display_name, idx)
-                    idx += 1
-
-                    manifest.append({
-                        "id": idx,
-                        "family": css_family,
-                        "display_name": display_name,
-                        "file": dest_path.name,
-                        "ext": ext.lstrip("."),
-                        "format": FORMAT_MAP[ext],
-                        "weight": weight,
-                        "style": style,
-                        "source_zip": zpath.name,
-                        "source_path": inner_path,
-                        "size_kb": round(len(data) / 1024, 1),
-                    })
+                    manifest.append(build_manifest_entry(dest_path, orig_stem, ext, len(data), zpath.name, inner_path))
         except zipfile.BadZipFile:
             errors.append(f"{zpath.name}: not a valid zip file, skipped")
         except Exception as e:
             errors.append(f"{zpath.name}: unexpected error ({e})")
 
-    manifest.sort(key=lambda m: m["display_name"].lower())
-    manifest = merge_duplicate_formats(manifest)
+    return manifest, errors
+
+
+def find_loose_font_files(root: Path, recurse: bool, exclude_dir: Path):
+    """Find font files sitting directly on disk (not inside a zip). Always
+    excludes anything under exclude_dir (the tool's own output folder)."""
+    pattern_iter = root.rglob("*") if recurse else root.glob("*")
+    files = []
+    for p in pattern_iter:
+        if not p.is_file():
+            continue
+        if exclude_dir in p.parents:
+            continue
+        if p.suffix.lower() not in FONT_EXTS:
+            continue
+        if "__MACOSX" in p.parts or p.name.startswith("."):
+            continue
+        files.append(p)
+    return sorted(files)
+
+
+def extract_loose_fonts(files, fonts_dir: Path, cwd: Path):
+    manifest = []
+    errors = []
+
+    for fpath in files:
+        try:
+            data = fpath.read_bytes()
+        except Exception as e:
+            errors.append(f"{fpath.name}: could not read ({e})")
+            continue
+
+        if not data:
+            errors.append(f"{fpath.name}: empty file, skipped")
+            continue
+
+        ext = fpath.suffix.lower()
+        orig_stem = fpath.stem
+        dest_path = unique_dest_path(fonts_dir, fpath.name)
+        dest_path.write_bytes(data)
+
+        try:
+            rel = str(fpath.relative_to(cwd))
+        except ValueError:
+            rel = str(fpath)
+
+        manifest.append(build_manifest_entry(dest_path, orig_stem, ext, len(data), "(unzipped)", rel))
+
     return manifest, errors
 
 
@@ -729,10 +776,13 @@ def build_html(manifest, zip_count: int) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Extract fonts from zip files and generate an HTML preview page.")
+    parser = argparse.ArgumentParser(description="Extract fonts from zip files (and loose font files) and generate an HTML preview page.")
     parser.add_argument("--output", default="fonter-preview", help="Output folder name (default: fonter-preview)")
     parser.add_argument("--no-recurse-dirs", action="store_true",
                          help="Only look for .zip files directly in the current folder, not in subfolders")
+    parser.add_argument("--scan-folders", action="store_true",
+                         help="Also scan subfolders for loose (already-unzipped) font files, not just the current folder. "
+                              "The output folder is always ignored.")
     args = parser.parse_args()
 
     cwd = Path.cwd()
@@ -743,22 +793,41 @@ def main():
     zip_files = [z for z in find_zip_files(cwd, recurse=not args.no_recurse_dirs)
                  if out_dir not in z.parents]
 
-    if not zip_files:
-        print("No .zip files found in the current folder (or subfolders).")
+    # loose (already-unzipped) font files sitting next to the zips.
+    # Top-level always scanned; --scan-folders extends this into subfolders too.
+    # The output folder itself is always excluded, even if it already exists from a prior run.
+    loose_files = find_loose_font_files(cwd, recurse=args.scan_folders, exclude_dir=out_dir)
+
+    if not zip_files and not loose_files:
+        print("No .zip files or loose font files found in the current folder"
+              + (" (or subfolders)." if not args.no_recurse_dirs or args.scan_folders else "."))
         sys.exit(1)
 
-    print(f"Found {len(zip_files)} zip file(s):")
-    for z in zip_files:
-        print(f"  - {z.relative_to(cwd)}")
+    if zip_files:
+        print(f"Found {len(zip_files)} zip file(s):")
+        for z in zip_files:
+            print(f"  - {z.relative_to(cwd)}")
+
+    if loose_files:
+        print(f"Found {len(loose_files)} loose font file(s):")
+        for f in loose_files:
+            print(f"  - {f.relative_to(cwd)}")
 
     out_dir.mkdir(exist_ok=True)
     fonts_dir.mkdir(exist_ok=True)
 
-    manifest, errors = extract_fonts(zip_files, fonts_dir)
+    zip_manifest, zip_errors = extract_fonts(zip_files, fonts_dir)
+    loose_manifest, loose_errors = extract_loose_fonts(loose_files, fonts_dir, cwd)
 
-    if not manifest:
-        print("\nNo font files (.ttf/.otf/.woff/.woff2) were found inside those zips.")
+    raw_manifest = zip_manifest + loose_manifest
+    errors = zip_errors + loose_errors
+
+    if not raw_manifest:
+        print("\nNo font files (.ttf/.otf/.woff/.woff2) were found.")
         sys.exit(1)
+
+    raw_manifest.sort(key=lambda m: m["display_name"].lower())
+    manifest = merge_duplicate_formats(raw_manifest)
 
     html = build_html(manifest, len(zip_files))
     index_path = out_dir / "index.html"
