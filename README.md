@@ -3,6 +3,7 @@
 A small script for your folder full of zipped fonts — it extracts every one of them and builds a single HTML page so you can preview them all at once.
 
 <img src="./thumbnail.png" alt="thumbnail" />
+<img src="./ui.png" alt="thumbnail" />
 
 ## What it does
 
