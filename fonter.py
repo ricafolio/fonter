@@ -15,6 +15,7 @@ Requires only the Python standard library.
 """
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -381,6 +382,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <style id="fontFaceStyles"></style>
 
 <script>
+const PAGE_ID = "{page_id}";
+const PIN_KEY = `fontPreview.${{PAGE_ID}}.pinned`;
+const HIDDEN_KEY = `fontPreview.${{PAGE_ID}}.hidden`;
+const THEME_KEY = `fontPreview.theme`;
+
 const FONTS = {manifest_json};
 
 const PRESETS = {{
@@ -447,8 +453,8 @@ const hiddenOnlyEl = document.getElementById('hiddenOnlyToggle');
 const visibleCountEl = document.getElementById('visibleCount');
 const toastEl = document.getElementById('toast');
 
-let pinned = new Set(JSON.parse(localStorage.getItem('fontPreview.pinned') || '[]'));
-let hiddenFonts = new Set(JSON.parse(localStorage.getItem('fontPreview.hidden') || '[]'));
+let pinned = new Set(JSON.parse(localStorage.getItem(PIN_KEY) || '[]'));
+let hiddenFonts = new Set(JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]'));
 let forceBold = false;
 let forceItalic = false;
 let pinnedOnly = false;
@@ -459,11 +465,11 @@ let formatPreference = 'auto';
 styleEl.textContent = buildFontFaceCSS(formatPreference);
 
 function savePinned() {{
-  localStorage.setItem('fontPreview.pinned', JSON.stringify([...pinned]));
+  localStorage.setItem(PIN_KEY, JSON.stringify([...pinned]));
 }}
 
 function saveHidden() {{
-  localStorage.setItem('fontPreview.hidden', JSON.stringify([...hiddenFonts]));
+  localStorage.setItem(HIDDEN_KEY, JSON.stringify([...hiddenFonts]));
 }}
 
 function showToast(msg) {{
@@ -753,11 +759,11 @@ themeToggleEl.addEventListener('click', () => {{
   const body = document.body;
   const next = body.dataset.theme === 'dark' ? 'light' : 'dark';
   body.dataset.theme = next;
-  localStorage.setItem('fontPreview.theme', next);
+  localStorage.setItem(THEME_KEY, next);
 }});
 
 // Restore theme
-const savedTheme = localStorage.getItem('fontPreview.theme');
+const savedTheme = localStorage.getItem(THEME_KEY);
 if (savedTheme) document.body.dataset.theme = savedTheme;
 
 render();
@@ -767,11 +773,12 @@ render();
 """
 
 
-def build_html(manifest, zip_count: int) -> str:
+def build_html(manifest, zip_count: int, page_id: str) -> str:
     return HTML_TEMPLATE.format(
         count=len(manifest),
         zip_count=zip_count,
         manifest_json=json.dumps(manifest, ensure_ascii=False),
+        page_id=page_id,
     )
 
 
@@ -788,6 +795,9 @@ def main():
     cwd = Path.cwd()
     out_dir = cwd / args.output
     fonts_dir = out_dir / "fonts"
+
+    # Create a stable ID for this specific output folder so localStorage doesn't bleed across different preview pages.
+    page_id = hashlib.md5(out_dir.resolve().as_posix().encode('utf-8')).hexdigest()[:12]
 
     # avoid re-scanning our own output folder if run twice
     zip_files = [z for z in find_zip_files(cwd, recurse=not args.no_recurse_dirs)
@@ -829,7 +839,7 @@ def main():
     raw_manifest.sort(key=lambda m: m["display_name"].lower())
     manifest = merge_duplicate_formats(raw_manifest)
 
-    html = build_html(manifest, len(zip_files))
+    html = build_html(manifest, len(zip_files), page_id)
     index_path = out_dir / "index.html"
     index_path.write_text(html, encoding="utf-8")
 
