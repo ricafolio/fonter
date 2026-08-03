@@ -273,6 +273,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <button id="boldToggle" class="toggle" title="Force bold rendering">B</button>
         <button id="italicToggle" class="toggle" title="Force italic rendering"><i>I</i></button>
         <button id="pinnedOnlyToggle" class="toggle" title="Show pinned only">★</button>
+        <button id="hiddenOnlyToggle" class="toggle" title="Show hidden fonts">🙈</button>
         <button id="viewToggle" title="Toggle grid/list view">☰</button>
         <button id="themeToggle" title="Toggle dark mode">◐</button>
       </div>
@@ -346,13 +347,16 @@ const italicToggleEl = document.getElementById('italicToggle');
 const pinnedOnlyEl = document.getElementById('pinnedOnlyToggle');
 const viewToggleEl = document.getElementById('viewToggle');
 const themeToggleEl = document.getElementById('themeToggle');
+const hiddenOnlyEl = document.getElementById('hiddenOnlyToggle');
 const visibleCountEl = document.getElementById('visibleCount');
 const toastEl = document.getElementById('toast');
 
 let pinned = new Set(JSON.parse(localStorage.getItem('fontPreview.pinned') || '[]'));
+let hiddenFonts = new Set(JSON.parse(localStorage.getItem('fontPreview.hidden') || '[]'));
 let forceBold = false;
 let forceItalic = false;
 let pinnedOnly = false;
+let hiddenOnly = false;
 let listView = false;
 let formatPreference = 'auto';
 
@@ -360,6 +364,10 @@ styleEl.textContent = buildFontFaceCSS(formatPreference);
 
 function savePinned() {{
   localStorage.setItem('fontPreview.pinned', JSON.stringify([...pinned]));
+}}
+
+function saveHidden() {{
+  localStorage.setItem('fontPreview.hidden', JSON.stringify([...hiddenFonts]));
 }}
 
 function showToast(msg) {{
@@ -441,6 +449,17 @@ function buildCard(f) {{
   actions.appendChild(pinBtn);
   actions.appendChild(faceBtn);
 
+  const hideBtn = document.createElement('button');
+  const isHidden = hiddenFonts.has(f.id);
+  hideBtn.textContent = isHidden ? 'Unhide' : 'Hide';
+  hideBtn.title = isHidden ? 'Bring this font back to the list' : '🙈 Hide this font from the list';
+  hideBtn.onclick = () => {{
+    if (isHidden) {{ hiddenFonts.delete(f.id); }} else {{ hiddenFonts.add(f.id); }}
+    saveHidden();
+    render();
+  }};
+  actions.appendChild(hideBtn);
+
   card.appendChild(meta);
   card.appendChild(specimen);
   card.appendChild(actions);
@@ -471,6 +490,12 @@ function updateSpecimenText() {{
 function render() {{
   const query = searchBoxEl.value.trim().toLowerCase();
   let list = FONTS.filter(f => {{
+    const isHidden = hiddenFonts.has(f.id);
+    if (hiddenOnly) {{
+      if (!isHidden) return false;
+    }} else {{
+      if (isHidden) return false;
+    }}
     if (pinnedOnly && !pinned.has(f.id)) return false;
     if (!query) return true;
     return f.display_name.toLowerCase().includes(query)
@@ -494,8 +519,15 @@ function render() {{
   list.forEach(f => grid.appendChild(buildCard(f)));
   applySpecimenStyles();
 
-  emptyState.style.display = list.length === 0 ? 'block' : 'none';
-  visibleCountEl.textContent = `Showing ${{list.length}} of ${{FONTS.length}}`;
+  emptyState.style.display = list.length === 0
+    ? 'block'
+    : 'none';
+  emptyState.textContent = hiddenOnly ? 'No hidden fonts.' : 'No fonts match your filter.';
+
+  const hiddenCount = hiddenFonts.size;
+  visibleCountEl.textContent = hiddenOnly
+    ? `Showing ${{list.length}} hidden`
+    : `Showing ${{list.length}} of ${{FONTS.length}}${{hiddenCount ? ` (${{hiddenCount}} hidden)` : ''}}`;
 }}
 
 // Event wiring
@@ -537,6 +569,11 @@ italicToggleEl.addEventListener('click', () => {{
 pinnedOnlyEl.addEventListener('click', () => {{
   pinnedOnly = !pinnedOnly;
   pinnedOnlyEl.classList.toggle('active', pinnedOnly);
+  render();
+}});
+hiddenOnlyEl.addEventListener('click', () => {{
+  hiddenOnly = !hiddenOnly;
+  hiddenOnlyEl.classList.toggle('active', hiddenOnly);
   render();
 }});
 viewToggleEl.addEventListener('click', () => {{
