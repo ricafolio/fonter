@@ -21,23 +21,28 @@ A small script for your folder full of zipped fonts — it extracts every one of
 ## Examples
 
 ```bash
-# basic run — scans current folder for zips, writes to fonter-preview/
+# scans current folder for zips & loose fonts, writes to fonter-preview/
+
+#  basic run with python
 python3 fonter.py
 
-# global install (macOS/Windows, see below), run from any folder
+#  basic run via global install (macOS/Windows, see below), run from any folder
 fonter
 
-# custom output folder name instead of fonter-preview/
-python3 fonter.py --output client-fonts
+# custom output folder name
+fonter --output client-fonts
 
-# only scan zips directly in this folder, skip subfolders
-python3 fonter.py --no-recurse-dirs
+# also scan subfolders for loose font files
+fonter --scan-folders
+
+# only scan zips in current folder, skip zips in subfolders
+fonter --no-recurse-dirs
 
 # combine flags
-python3 fonter.py --output client-fonts --no-recurse-dirs
+fonter --output client-fonts --no-recurse-dirs
 
 # send the output somewhere else entirely (still scans zips in the current folder)
-python3 fonter.py --output /Users/me/Desktop/wedding-fonts-preview
+fonter --output /Users/me/Desktop/fonts-preview-1
 ```
 
 ---
