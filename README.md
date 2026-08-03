@@ -3,13 +3,18 @@
 A small script for your folder full of zipped fonts — it extracts every one of them and builds a single HTML page so you can preview them all at once.
 
 <img src="./thumbnail.png" alt="thumbnail" />
+
+> run it in your folder
+
 <img src="./ui.png" alt="thumbnail" />
+
+> preview in webpage
 
 ## What it does
 
-- Scans the current folder (and subfolders) for `.zip` files
+- Scans the current folder (and subfolders) for `.zip` files and loose font files
 - Opens every zip and pulls out any `.ttf`, `.otf`, `.woff`, `.woff2`
-  file, no matter how deep it's buried inside
+  file
 - Handles duplicate filenames across zips without overwriting anything
 - Skips corrupt zips and junk files instead of crashing
 - Outputs a `fonter-preview/` folder with an `index.html` you just open
@@ -23,10 +28,10 @@ A small script for your folder full of zipped fonts — it extracts every one of
 ```bash
 # scans current folder for zips & loose fonts, writes to fonter-preview/
 
-#  basic run with python
+#  basic run with python, script must be in same folder of working folder
 python3 fonter.py
 
-#  basic run via global install (macOS/Windows, see below), run from any folder
+#  basic run via global install (macOS/Windows, see below), run script from any folder
 fonter
 
 # custom output folder name
