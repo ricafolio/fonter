@@ -233,7 +233,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     font-size: 13px;
     font-family: inherit;
   }}
-  #sampleText {{ min-width: 260px; flex: 1 1 260px; }}
+  #sampleText {{ min-width: 260px; flex: 1 1 260px; max-height: 2rem; }}
   input[type="range"] {{ width: 110px; }}
   .range-val {{ font-size: 11px; color: var(--ink-soft); min-width: 34px; }}
   .range-wrap {{ display: flex; align-items: center; gap: 6px; }}
