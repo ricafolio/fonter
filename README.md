@@ -2,7 +2,7 @@
 
 A small script for your folder full of zipped fonts — it extracts every one of them and builds a single HTML page so you can preview them all at once.
 
-<img src="./thumbnail.png" alt="thumbnail" />
+<img src="./thumbnail.png" alt="thumbnail"/>
 
 > run it in your folder
 
@@ -52,29 +52,46 @@ fonter --output /Users/me/Desktop/fonts-preview-1
 
 ---
 
-## Option 1 — Run it with Python, per folder
+## Prerequisites
 
-1. Put `fonter.py` in (or `cd` your terminal into) the folder with your zips.
-2. Run:
+`fonter` requires **Python 3** to run.
 
-   ```bash
-   python3 fonter.py
-   ```
+### 🪟 Windows
+1. Download Python from the [official installer](https://www.python.org/downloads/).
+2. Run the installer and **check the box "Add python.exe to PATH"** before clicking Install.
 
-   (Windows: `python fonter.py`)
-
-3. Open `fonter-preview/index.html`.
-
-**Flags:**
-
+### 🍏 macOS
+Run in Terminal via [Homebrew](https://brew.sh/) or download [the official installer package](https://www.python.org/downloads/macos/):
 ```bash
-python3 fonter.py --output my-preview   # custom output folder name
-python3 fonter.py --no-recurse-dirs     # only look for zips directly in this folder, not subfolders
+brew install python
+```
+
+### 🔍 Verify Installation
+Open Command Prompt on Windows or Terminal on Mac and run:
+```Bash
+python3 --version
+python --version # windows
 ```
 
 ---
 
-## Option 2 — Install globally on macOS
+## Run fonter
+
+### Option 1 — Run it with Python, per folder
+
+1. Put `fonter.py` in the folder with your zips.
+2. `cd` your folder path into your terminal
+3. Run:
+
+   ```bash
+   python3 fonter.py
+   python fonter.py # windows
+   ```
+4. Open `fonter-preview/index.html`.
+
+---
+
+### Option 2 — Install globally on macOS
 
 1. ```bash
    mkdir -p ~/bin
@@ -112,7 +129,7 @@ chmod +x ~/dev/font-tools/fonter.py
 
 ---
 
-## Option 3 — Install globally on Windows
+### Option 3 — Install globally on Windows
 
 1. Confirm Python is on PATH: `python --version`
 2. Create a scripts folder, e.g. `C:\Users\<you>\bin`
