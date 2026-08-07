@@ -253,7 +253,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </div>
 
     <div class="field">
-      <label for="presetSelect">Preset</label>
+      <label for="presetSelect">Text Preset</label>
       <select id="presetSelect">
         <option value="">Custom…</option>
         <option value="pangram">Pangram</option>
@@ -294,7 +294,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </div>
 
     <div class="field">
-      <label for="formatSelect">Format</label>
+      <label for="formatSelect">Font Format</label>
       <select id="formatSelect">
         <option value="auto">Auto</option>
         <option value="otf">Prefer OTF</option>
