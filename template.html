@@ -572,6 +572,7 @@
                 display: flex;
                 gap: 5px;
                 flex-shrink: 0;
+                align-items: center;
             }
             .badge {
                 background: var(--chip);
@@ -585,6 +586,53 @@
             }
             .badge-active {
                 color: var(--accent);
+            }
+
+            /* Mini Modal (Dropdown) Styles */
+            .badge-dropdown-wrap {
+                position: relative;
+                display: flex;
+                outline: none;
+            }
+            .badge-more {
+                cursor: pointer;
+                background: var(--chip);
+                transition: all 0.15s ease;
+            }
+            .badge-more:hover,
+            .badge-dropdown-wrap:hover .badge-more,
+            .badge-dropdown-wrap:focus-within .badge-more {
+                background: var(--chip);
+                color: var(--ink);
+            }
+            .badge-dropdown {
+                position: absolute;
+                top: calc(100% + 6px);
+                right: 0; /* Aligns dropdown inward so it doesn't clip off screen */
+                background: var(--panel);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                padding: 8px;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+                width: max-content;
+                max-width: 180px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+                opacity: 0;
+                visibility: hidden;
+                transform: translateY(-4px);
+                transition: all 0.15s ease;
+                z-index: 100;
+            }
+            [data-theme="dark"] .badge-dropdown {
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            }
+            .badge-dropdown-wrap:hover .badge-dropdown,
+            .badge-dropdown-wrap:focus-within .badge-dropdown {
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(0);
             }
             .specimen {
                 word-wrap: break-word;
@@ -1142,7 +1190,7 @@
                 </div>
 
                 <div class="field">
-                    <label for="fontTypeSelect">Font Type</label>
+                    <label for="fontTypeSelect">Font Type (Experimental)</label>
                     <div class="dropdown-wrap">
                         <svg
                             class="dropdown-icon"
@@ -1743,21 +1791,58 @@
 
                 const badges = document.createElement("div");
                 badges.className = "badges";
-                const formatBadges = formats
-                    .map(
-                        (fmt) =>
-                            `<span class="badge${fmt === active ? " badge-active" : ""}">${fmt.ext}</span>`,
-                    )
-                    .join("");
-                badges.innerHTML =
-                    formatBadges +
-                    `<span class="badge">${f.weight}</span>` +
-                    (f.style === "italic"
-                        ? '<span class="badge">italic</span>'
-                        : "") +
-                    (f.font_type
-                        ? `<span class="badge" title="Font type${f.font_type_source === "name-guess" ? " (guessed from filename, not font metadata)" : f.font_type_source === "unknown" ? " could not be determined" : ""}">${f.font_type}${f.font_type_source === "name-guess" ? "?" : ""}</span>`
-                        : "");
+
+                // Collect all badge HTML strings into an array first
+                const badgeElements = [];
+
+                // 1. Format badges
+                formats.forEach((fmt) => {
+                    badgeElements.push(
+                        `<span class="badge${fmt === active ? " badge-active" : ""}">${fmt.ext}</span>`,
+                    );
+                });
+
+                // 2. Weight badge
+                badgeElements.push(`<span class="badge">${f.weight}</span>`);
+
+                // 3. Style badge (if italic)
+                if (f.style === "italic") {
+                    badgeElements.push('<span class="badge">italic</span>');
+                }
+
+                // 4. Type classification badge
+                if (f.font_type) {
+                    const titleStr =
+                        f.font_type_source === "name-guess"
+                            ? "Font type (guessed from filename, not font metadata)"
+                            : f.font_type_source === "unknown"
+                              ? "Font type could not be determined"
+                              : "Font type";
+                    const qMark = f.font_type_source === "name-guess" ? "" : "";
+                    badgeElements.push(
+                        `<span class="badge" title="${titleStr}">${f.font_type}${qMark}</span>`,
+                    );
+                }
+
+                // If we have more than 3 badges, move extras into a mini modal
+                if (badgeElements.length > 3) {
+                    const visibleBadges = badgeElements.slice(0, 3).join("");
+                    const hiddenBadges = badgeElements.slice(3).join("");
+
+                    // tabindex="0" ensures mobile devices can tap to trigger :focus-within
+                    badges.innerHTML =
+                        visibleBadges +
+                        `
+                                        <div class="badge-dropdown-wrap" tabindex="0">
+                                            <span class="badge badge-more" title="Show all labels">...</span>
+                                            <div class="badge-dropdown">
+                                                ${hiddenBadges}
+                                            </div>
+                                        </div>
+                                    `;
+                } else {
+                    badges.innerHTML = badgeElements.join("");
+                }
 
                 meta.appendChild(nameWrap);
                 meta.appendChild(badges);
