@@ -2,10 +2,11 @@
 """
 fonter.py
 
-Scans the current folder (and subfolders) for .zip files, pulls every font
-file out of them (no matter how deeply nested inside the zip), copies them
-into a flat fonts/ folder, and generates a single self-contained HTML page
-to preview every font at once.
+Scans the current folder for .zip files and loose font files — by default,
+the current folder plus up to 4 levels of subfolders (see --max-depth) —
+pulls every font file out of them (no matter how deeply nested inside a
+zip), copies them into a flat fonts/ folder, and generates a single
+self-contained HTML page to preview every font at once.
 
 The HTML page itself lives in template.html (next to this script) and is
 loaded + token-substituted at runtime, so you can edit the design/markup
@@ -22,7 +23,11 @@ detect_font_type() below.
 
 Usage:
     python3 fonter.py
-    python3 fonter.py --output my-preview --no-recurse-dirs
+    python3 fonter.py --output my-preview
+    python3 fonter.py --no-recurse-dirs   # current folder only, no subfolders
+    python3 fonter.py --max-depth 8       # go deeper than the default 4 levels
+    python3 fonter.py --folders-only      # skip files sitting directly in the current folder
+    python3 fonter.py --fonts-only        # skip zip files, only look for loose font files
 
 Optional dependency for metadata-based font-type detection:
     pip install fonttools
@@ -35,6 +40,7 @@ same — font-type detection just falls back to guessing from filenames.
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 import zipfile
@@ -49,6 +55,11 @@ except ImportError:
     HAVE_FONTTOOLS = False
 
 FONT_EXTS = {".ttf", ".otf", ".woff", ".woff2"}
+
+# How many levels of subfolders to search by default. 0 = current folder
+# only; 1 = current folder + its immediate subfolders; etc. Overridable
+# with --max-depth, or forced to 0 with --no-recurse-dirs.
+DEFAULT_MAX_DEPTH = 4
 
 FORMAT_MAP = {
     ".ttf": "truetype",
@@ -100,10 +111,41 @@ PANOSE_UNCLASSIFIED_SERIF_STYLES = {0, 1}
 TEMPLATE_PATH = Path(__file__).resolve().parent / "template.html"
 
 
-def find_zip_files(root: Path, recurse: bool):
-    if recurse:
-        return sorted(p for p in root.rglob("*.zip") if p.is_file())
-    return sorted(p for p in root.glob("*.zip") if p.is_file())
+def iter_files_by_depth(root: Path, max_depth: int, exclude_dir: Path = None):
+    """Yield (path, depth) for every file under root, where depth 0 means
+    the file sits directly inside root, depth 1 means one subfolder down,
+    and so on. Never descends past max_depth, and never enters exclude_dir
+    (the tool's own output folder), so a previous run's output is never
+    rescanned as input."""
+    root = root.resolve()
+    exclude_resolved = exclude_dir.resolve() if exclude_dir is not None else None
+
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirpath_p = Path(dirpath)
+        depth = len(dirpath_p.relative_to(root).parts)
+
+        if exclude_resolved is not None:
+            dirnames[:] = [
+                d for d in dirnames if (dirpath_p / d).resolve() != exclude_resolved
+            ]
+
+        if depth >= max_depth:
+            dirnames[:] = []  # don't descend any further
+
+        for fname in filenames:
+            yield dirpath_p / fname, depth
+
+
+def find_zip_files(
+    root: Path, max_depth: int, folders_only: bool, exclude_dir: Path = None
+):
+    results = []
+    for path, depth in iter_files_by_depth(root, max_depth, exclude_dir):
+        if folders_only and depth == 0:
+            continue
+        if path.suffix.lower() == ".zip":
+            results.append(path)
+    return sorted(results)
 
 
 def clean_display_name(stem: str) -> str:
@@ -364,22 +406,21 @@ def extract_fonts(zip_files, fonts_dir: Path):
     return manifest, errors
 
 
-def find_loose_font_files(root: Path, recurse: bool, exclude_dir: Path):
-    """Find font files sitting directly on disk (not inside a zip). Always
-    excludes anything under exclude_dir (the tool's own output folder)."""
-    pattern_iter = root.rglob("*") if recurse else root.glob("*")
-    files = []
-    for p in pattern_iter:
-        if not p.is_file():
+def find_loose_font_files(
+    root: Path, max_depth: int, folders_only: bool, exclude_dir: Path = None
+):
+    """Find font files sitting directly on disk (not inside a zip).
+    Respects max_depth and excludes anything under exclude_dir."""
+    results = []
+    for path, depth in iter_files_by_depth(root, max_depth, exclude_dir):
+        if folders_only and depth == 0:
             continue
-        if exclude_dir in p.parents:
+        if path.suffix.lower() not in FONT_EXTS:
             continue
-        if p.suffix.lower() not in FONT_EXTS:
+        if "__MACOSX" in path.parts or path.name.startswith("."):
             continue
-        if "__MACOSX" in p.parts or p.name.startswith("."):
-            continue
-        files.append(p)
-    return sorted(files)
+        results.append(path)
+    return sorted(results)
 
 
 def extract_loose_fonts(files, fonts_dir: Path, cwd: Path):
@@ -450,13 +491,23 @@ def main():
     parser.add_argument(
         "--no-recurse-dirs",
         action="store_true",
-        help="Only look for .zip files directly in the current folder, not in subfolders",
+        help="Current folder only, no subfolders",
     )
     parser.add_argument(
-        "--scan-folders",
+        "--max-depth",
+        type=int,
+        default=DEFAULT_MAX_DEPTH,
+        help=f"How many levels of subfolders to search (default: {DEFAULT_MAX_DEPTH})",
+    )
+    parser.add_argument(
+        "--folders-only",
         action="store_true",
-        help="Also scan subfolders for loose (already-unzipped) font files, not just the current folder. "
-        "The output folder is always ignored.",
+        help="Skip files sitting directly in the current folder",
+    )
+    parser.add_argument(
+        "--fonts-only",
+        action="store_true",
+        help="Skip zip files, only look for loose font files",
     )
     args = parser.parse_args()
 
@@ -464,31 +515,29 @@ def main():
     out_dir = cwd / args.output
     fonts_dir = out_dir / "fonts"
 
-    # Create a stable ID for this specific output folder so localStorage doesn't bleed across different preview pages.
+    # Create a stable ID for this specific output folder
     page_id = hashlib.md5(out_dir.resolve().as_posix().encode("utf-8")).hexdigest()[:12]
 
-    # avoid re-scanning our own output folder if run twice
-    zip_files = [
-        z
-        for z in find_zip_files(cwd, recurse=not args.no_recurse_dirs)
-        if out_dir not in z.parents
-    ]
+    # Determine actual max depth
+    actual_max_depth = 0 if args.no_recurse_dirs else args.max_depth
 
-    # loose (already-unzipped) font files sitting next to the zips.
-    # Top-level always scanned; --scan-folders extends this into subfolders too.
-    # The output folder itself is always excluded, even if it already exists from a prior run.
+    # Find Zip Files
+    if args.fonts_only:
+        zip_files = []
+    else:
+        zip_files = find_zip_files(
+            cwd, actual_max_depth, args.folders_only, exclude_dir=out_dir
+        )
+
+    # Find Loose Fonts
     loose_files = find_loose_font_files(
-        cwd, recurse=args.scan_folders, exclude_dir=out_dir
+        cwd, actual_max_depth, args.folders_only, exclude_dir=out_dir
     )
 
     if not zip_files and not loose_files:
         print(
             "No .zip files or loose font files found in the current folder"
-            + (
-                " (or subfolders)."
-                if not args.no_recurse_dirs or args.scan_folders
-                else "."
-            )
+            + ("." if args.no_recurse_dirs else " (or subfolders).")
         )
         sys.exit(1)
 
