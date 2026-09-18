@@ -4,6 +4,11 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Font Preview — __COUNT__ fonts</title>
+        <link
+            rel="icon"
+            type="image/svg+xml"
+            href="data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M22.9 14.8571V24H20.6V14.8571H16V12.5714H27.5V14.8571H22.9ZM13.7 10.2857V24H11.4V10.2857H4.5V8H21.75V10.2857H13.7Z' fill='black'/%3E%3C/svg%3E%0A"
+        />
         <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
         <link
             href="https://api.fontshare.com/v2/css?f[]=beVietnam-pro@400,500,600,700&display=swap"
@@ -444,6 +449,18 @@
                 --c1: #f7f1fb;
                 --c2: #8b3fd1;
             }
+            .theme-circle[data-value="rose"] {
+                --c1: #fff0f5;
+                --c2: #e11d48;
+            }
+            .theme-circle[data-value="emerald"] {
+                --c1: #f0fdf4;
+                --c2: #10b981;
+            }
+            .theme-circle[data-value="amber"] {
+                --c1: #fffbeb;
+                --c2: #d97706;
+            }
 
             [data-theme="dark"] .theme-circle[data-value="default"] {
                 --c1: #16161a;
@@ -464,6 +481,18 @@
             [data-theme="dark"] .theme-circle[data-value="grape"] {
                 --c1: #150c1c;
                 --c2: #a566e0;
+            }
+            [data-theme="dark"] .theme-circle[data-value="rose"] {
+                --c1: #1a0f14;
+                --c2: #fb7185;
+            }
+            [data-theme="dark"] .theme-circle[data-value="emerald"] {
+                --c1: #022c22;
+                --c2: #34d399;
+            }
+            [data-theme="dark"] .theme-circle[data-value="amber"] {
+                --c1: #451a03;
+                --c2: #fbbf24;
             }
 
             .spacer {
@@ -679,6 +708,8 @@
                 content: "Type something…";
                 color: var(--ink-soft);
             }
+
+            /* Preset Colors */
             [data-preset="sunset"] {
                 --bg: #fff5f0;
                 --panel: var(--bg);
@@ -758,6 +789,66 @@
                 --accent: #a566e0;
                 --accent-ink: #150c1c;
                 --chip: #2c1c3c;
+            }
+            [data-preset="rose"] {
+                --bg: #fff0f5;
+                --panel: var(--bg);
+                --ink: #33111d;
+                --ink-soft: #884455;
+                --border: #f4d4df;
+                --accent: #e11d48;
+                --accent-ink: #ffffff;
+                --chip: #ffe4ed;
+            }
+            [data-preset="rose"][data-theme="dark"] {
+                --bg: #1a0f14;
+                --panel: var(--bg);
+                --ink: #fce7f3;
+                --ink-soft: #9f657a;
+                --border: #3f1d2b;
+                --accent: #fb7185;
+                --accent-ink: #1a0f14;
+                --chip: #2d1622;
+            }
+            [data-preset="emerald"] {
+                --bg: #f0fdf4;
+                --panel: var(--bg);
+                --ink: #064e3b;
+                --ink-soft: #348261;
+                --border: #bbf7d0;
+                --accent: #10b981;
+                --accent-ink: #ffffff;
+                --chip: #d1fae5;
+            }
+            [data-preset="emerald"][data-theme="dark"] {
+                --bg: #022c22;
+                --panel: var(--bg);
+                --ink: #d1fae5;
+                --ink-soft: #63a486;
+                --border: #065f46;
+                --accent: #34d399;
+                --accent-ink: #022c22;
+                --chip: #064e3b;
+            }
+            [data-preset="amber"] {
+                --bg: #fffbeb;
+                --panel: var(--bg);
+                --ink: #78350f;
+                --ink-soft: #b45309;
+                --border: #fde68a;
+                --accent: #d97706;
+                --accent-ink: #ffffff;
+                --chip: #fef3c7;
+            }
+            [data-preset="amber"][data-theme="dark"] {
+                --bg: #451a03;
+                --panel: var(--bg);
+                --ink: #fef3c7;
+                --ink-soft: #d97706;
+                --border: #78350f;
+                --accent: #fbbf24;
+                --accent-ink: #451a03;
+                --chip: #572004;
             }
         </style>
     </head>
@@ -1078,6 +1169,21 @@
                             data-value="grape"
                             title="Grape"
                         ></button>
+                        <button
+                            class="theme-circle"
+                            data-value="rose"
+                            title="Rose"
+                        ></button>
+                        <button
+                            class="theme-circle"
+                            data-value="emerald"
+                            title="Emerald"
+                        ></button>
+                        <button
+                            class="theme-circle"
+                            data-value="amber"
+                            title="Amber"
+                        ></button>
                     </div>
                 </div>
 
@@ -1115,6 +1221,28 @@
                                 title="Uppercase previews"
                             >
                                 AA
+                            </button>
+                            <button
+                                id="colorToggle"
+                                class="toggle"
+                                data-tip="Colorize text"
+                                title="Colorize text"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2.5"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path
+                                        d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"
+                                    ></path>
+                                </svg>
                             </button>
                         </div>
 
@@ -1393,6 +1521,7 @@
             const italicToggleEl = document.getElementById("italicToggle");
             const uppercaseToggleEl =
                 document.getElementById("uppercaseToggle");
+            const colorToggleEl = document.getElementById("colorToggle");
             const pinnedOnlyEl = document.getElementById("pinnedOnlyToggle");
             const viewToggleEl = document.getElementById("viewToggle");
             const wrapToggleEl = document.getElementById("wrapToggle");
@@ -1415,6 +1544,7 @@
             let forceBold = false;
             let forceItalic = false;
             let forceUppercase = false;
+            let colorizeText = false;
             let pinnedOnly = false;
             let hiddenOnly = false;
             let listView = false;
@@ -1475,6 +1605,7 @@
                 focusTextEl.style.fontSize = focusSizeEl.value + "px";
                 focusTextEl.style.letterSpacing = focusTrackingEl.value + "px";
                 focusTextEl.style.lineHeight = focusLeadingEl.value / 100;
+                focusTextEl.style.color = colorizeText ? "var(--accent)" : "";
             }
 
             focusSizeEl.addEventListener("input", () => {
@@ -1672,6 +1803,7 @@
                     el.style.fontWeight = forceBold ? "700" : "";
                     el.style.fontStyle = forceItalic ? "italic" : "";
                     el.style.textTransform = forceUppercase ? "uppercase" : "";
+                    el.style.color = colorizeText ? "var(--accent)" : "";
                     el.classList.toggle("nowrap", nowrapMode);
                 });
             }
@@ -1820,6 +1952,14 @@
                 uppercaseToggleEl.classList.toggle("active", forceUppercase);
                 applySpecimenStyles();
             });
+            colorToggleEl.addEventListener("click", () => {
+                colorizeText = !colorizeText;
+                colorToggleEl.classList.toggle("active", colorizeText);
+                applySpecimenStyles();
+                if (focusModeEl.classList.contains("active")) {
+                    applyFocusStyles();
+                }
+            });
             pinnedOnlyEl.addEventListener("click", () => {
                 pinnedOnly = !pinnedOnly;
                 pinnedOnlyEl.classList.toggle("active", pinnedOnly);
@@ -1868,6 +2008,7 @@
                 forceBold = false;
                 forceItalic = false;
                 forceUppercase = false;
+                colorizeText = false;
                 pinnedOnly = false;
                 hiddenOnly = false;
                 listView = false;
@@ -1876,6 +2017,7 @@
                 boldToggleEl.classList.remove("active");
                 italicToggleEl.classList.remove("active");
                 uppercaseToggleEl.classList.remove("active");
+                colorToggleEl.classList.remove("active");
                 pinnedOnlyEl.classList.remove("active");
                 hiddenOnlyEl.classList.remove("active");
                 viewToggleEl.classList.remove("active");
@@ -1915,8 +2057,7 @@
 
             // Sticky-header minimizer logic
             function updateHeaderCollapseUI() {
-                const atTop = window.scrollY <= 4;
-                const shouldCollapse = headerCollapsed && !atTop;
+                const shouldCollapse = headerCollapsed;
                 headerEl.classList.toggle("header-collapsed", shouldCollapse);
                 headerToggleBtn.classList.toggle("active", headerCollapsed);
                 headerToggleBtn.textContent = headerCollapsed ? "▸" : "▾";
@@ -1934,9 +2075,6 @@
                     headerCollapsed ? "1" : "0",
                 );
                 updateHeaderCollapseUI();
-            });
-            window.addEventListener("scroll", updateHeaderCollapseUI, {
-                passive: true,
             });
 
             // Restore theme, color preset, and header state
