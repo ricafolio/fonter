@@ -1,160 +1,110 @@
-# fonter
+# Fonter
 
-A small script for your folder full of zipped fonts — it extracts every one of them and builds a single HTML page so you can preview them all at once.
+Automatically finds and extracts font files (.ttf, .otf, .woff, .woff2) from your folders or .zip archives, and generating a fast, single-page HTML preview of your entire collection at once.
 
-<img src="./thumbnail.png" alt="thumbnail"/>
+<img src="./thumbnail.png" alt="thumbnail" />
 
-> run it in your folder
+## Features
+* **Deep Zip Scanning:** Automatically digs through zip archives to extract font files.
+* **Loose Font Support:** Can scan for already-unzipped font files sitting directly on current folder.
+* **Sub-folder Scanning**: Scans through all sub-folders by default to find nested font files.
+* **Smart Organization:** Merges duplicate formats (e.g., `Roboto-Bold.otf` and `Roboto-Bold.ttf`) into a single preview card with a `formats` list.
+* **Intelligent Weight/Style Detection:** Parses filenames to automatically guess font weights and italic styles.
+* **Self-Contained Output:** Generates a portable `index.html` file alongside a `fonts/` folder and `manifest.json`.
+* **Live Development Server:** Built-in live-reloading dev server for quickly editing the HTML template without re-extracting archives.
 
-<img src="./ui.png" alt="thumbnail" />
+<img src="./ui-list.png" alt="thumbnail" />
+<img src="./ui-themed.png" alt="thumbnail" />
 
-> preview in webpage
+## Global Installation (Mac/Linux)
 
-## What it does
+To run `fonter` from anywhere on your system as a global command, create a symbolic link in your `~/bin` directory (make sure `~/bin` is included in your system's `$PATH`).
 
-- Scans the current folder (and subfolders) for `.zip` files and loose font files
-- Opens every zip and pulls out any `.ttf`, `.otf`, `.woff`, `.woff2`
-  file
-- Handles duplicate filenames across zips without overwriting anything
-- Skips corrupt zips and junk files instead of crashing
-- Outputs a `fonter-preview/` folder with an `index.html` you just open
-  in a browser — sliders for size/spacing/line-height, search, sort,
-  pin favorites, copy CSS, dark mode, grid/list view
+1. **Clone this repository** to a permanent location (e.g., `~/Projects/fonter`):
+   ```bash
+   git clone [https://github.com/ricafolio/fonter.git](https://github.com/ricafolio/fonter.git)
+   cd fonter
+   ```
+2. **Make the script executable:**
+   ```bash
+   chmod +x fonter.py dev_server.py
+   ```
+3. **Create a symbolic link** in your bin folder:
+   ```bash
+   ln -s "$(pwd)/fonter.py" ~/bin/fonter
+   ```
+> **Important:** Do not use `cp` to copy the script. Using `ln -s` ensures the script can dynamically resolve its path and locate its companion `template.html` file!
 
----
+## Usage
 
-## Examples
+Navigate to any directory containing `.zip` files (or folders of zip files) with fonts, and execute the command. This will create a `fonter-preview/` directory containing your extracted fonts and an `index.html` preview file, and automatically prompt you to open it.
 
-```bash
-# scans current folder for zips & loose fonts, writes to fonter-preview/
+### Command-Line Options
 
-#  basic run with python, script must be in same folder of working folder
-python3 fonter.py
+| Flag | Description | Default |
+| :--- | :--- | :--- |
+| `--output <path>` | Custom output folder name or absolute path. | `fonter-preview` |
+| `--no-recurse-dirs` | Only look for `.zip` files directly in the current folder, ignoring subfolders. | `false` |
 
-#  basic run via global install (macOS/Windows, see below), run script from any folder
-fonter
+## Add fonter to macOS Quick Action (Right-Click Menu)
 
-# custom output folder name
-fonter --output client-fonts
+You can add `fonter` to your Mac's right-click menu so you can generate a preview without opening the terminal.
 
-# also scan subfolders for loose font files
-fonter --scan-folders
+1. Open the **Automator** app on your Mac and create a new **Quick Action**.
+2. At the top of the workflow window, set:
+   * Workflow receives current: **files or folders**
+   * in: **Finder**
+3. In the left sidebar, search for **Run Shell Script** and drag it into the main workflow area.
+4. In the Run Shell Script settings, change **Pass input:** to **as arguments**.
+5. Paste the following code into the script box, completely replacing the default code:
 
-# only scan zips in current folder, skip zips in subfolders
-fonter --no-recurse-dirs
+   ```bash
+   # Fix Automator's limited $PATH so it can find Python and your global fonter command
+   export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/bin:$PATH"
 
-# combine flags
-fonter --output client-fonts --no-recurse-dirs
+   TARGET="$1"
 
-# send the output somewhere else entirely (still scans zips in the current folder)
-fonter --output /Users/me/Desktop/fonts-preview-1
-```
+   # If a folder was right-clicked, go inside it. If a file was right-clicked, go to its parent folder.
+   if [ -d "$TARGET" ]; then
+       cd "$TARGET"
+   else
+       cd "$(dirname "$TARGET")"
+   fi
 
----
+   # Run the extractor
+   fonter
 
-## Prerequisites
+   # Automatically open the generated preview in your default browser
+   if [ -f "fonter-preview/index.html" ]; then
+       open "fonter-preview/index.html"
+   fi
+   ```
+6. Press `Cmd + S` to save and name it **Run Fonter**.
 
-`fonter` requires **Python 3** to run.
+## Development
 
-### 🪟 Windows
-1. Download Python from the [official installer](https://www.python.org/downloads/).
-2. Run the installer and **check the box "Add python.exe to PATH"** before clicking Install.
+If you want to edit the design or structure of the preview page (`template.html`), you can use the built-in development server with live-reloading.
 
-### 🍏 macOS
-Run in Terminal via [Homebrew](https://brew.sh/) or download [the official installer package](https://www.python.org/downloads/macos/):
-```bash
-brew install python
-```
-
-### 🔍 Verify Installation
-Open Command Prompt on Windows or Terminal on Mac and run:
-```Bash
-python3 --version
-python --version # windows
-```
-
----
-
-## Run fonter
-
-### Option 1 — Run it with Python, per folder
-
-1. Put `fonter.py` in the folder with your zips.
-2. `cd` your folder path into your terminal
-3. Run:
-
+1. **Clone the project** to your machine and navigate to it:
+   ```bash
+   git clone [https://github.com/ricafolio/fonter.git](https://github.com/ricafolio/fonter.git)
+   cd fonter
+   ```
+2. **Generate a baseline build:** Put a zip file containing fonts into the project root and run the extractor once to generate the initial output folder:
    ```bash
    python3 fonter.py
-   python fonter.py # windows
    ```
-4. Open `fonter-preview/index.html`.
-
----
-
-### Option 2 — Install globally on macOS
-
-1. ```bash
-   mkdir -p ~/bin
-   cp ~/Downloads/fonter.py ~/bin/fonter
-   chmod +x ~/bin/fonter
-   ```
-
-2. Add `~/bin` to PATH (skip if already there):
-
+3. **Start the development server:** 
    ```bash
-   echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc
-   source ~/.zshrc
+   python3 dev_server.py
    ```
+   This will automatically open a browser tab. Any edits you make to `template.html` and save will instantly trigger a live reload in your browser without needing to run the slow font-extraction process again!
 
-3. From any folder with zips:
+### Dev Server Options
 
-   ```bash
-   fonter
-   ```
-
-If you'll keep editing the script, symlink instead of copying so changes
-apply immediately:
-
-```bash
-ln -sf ~/dev/font-tools/fonter.py ~/bin/fonter
-chmod +x ~/dev/font-tools/fonter.py
-```
-
-**Troubleshooting:**
-- `permission denied: fonter` → run `chmod +x ~/bin/fonter` (if it's a
-  symlink, `chmod` the real file it points to).
-- `can't find '__main__' module` → `~/bin/fonter` is a directory, not a
-  file. Check with `ls -la ~/bin/fonter`, `rm -rf` it, redo step 1.
-- After fixing either, run `hash -r` before retrying.
-
----
-
-### Option 3 — Install globally on Windows
-
-1. Confirm Python is on PATH: `python --version`
-2. Create a scripts folder, e.g. `C:\Users\<you>\bin`
-3. Copy `fonter.py` into it, keeping the `.py` extension
-4. Add that folder to PATH: Win → search "Environment Variables" →
-   Edit the system environment variables → Environment Variables →
-   under User variables, edit `Path` → add `C:\Users\<you>\bin` →
-   restart your terminal
-5. In the same folder, create `fonter.cmd` containing:
-
-   ```bat
-   @python "%~dp0fonter.py" %*
-   ```
-
-6. From any folder with zips:
-
-   ```powershell
-   fonter
-   ```
-
----
-
-## Notes
-
-- If two zips both contain a file with the same name, both are kept —
-  the second gets auto-renamed. Each preview card shows its source zip.
-- `fonter-preview/manifest.json` has the raw metadata for every extracted
-  font if you want to use it elsewhere.
+| Flag | Description | Default |
+| :--- | :--- | :--- |
+| `--output <name>` | Point to a specific output folder to reuse. | `fonter-preview` |
+| `--port <number>` | Run the dev server on a custom port. | `8000` |
+| `--demo` | Use fabricated placeholder fonts to preview the UI/CSS without needing real fonts extracted. | `false` |
+| `--no-browser` | Disable automatically opening a browser tab. | `false` |
