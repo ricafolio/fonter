@@ -1,0 +1,1867 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Font Preview — __COUNT__ fonts</title>
+        <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+        <link
+            href="https://api.fontshare.com/v2/css?f[]=beVietnam-pro@400,500,600,700&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            :root {
+                --bg: #fff;
+                --panel: #ffffff;
+                --ink: #1a1a1a;
+                --ink-soft: #6b6b6b;
+                --border: #dadfe2;
+                --accent: #2f65d1;
+                --accent-ink: #ffffff;
+                --chip: #f3f6f9;
+                --radius: 10px;
+                --shadow: none;
+            }
+            [data-theme="dark"] {
+                --bg: #16161a;
+                --panel: #1f1f24;
+                --ink: #f0efe9;
+                --ink-soft: #9a9a9f;
+                --border: #313138;
+                --accent: #2f65d1;
+                --accent-ink: #16161a;
+                --chip: #2a2a31;
+                --shadow: none;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                margin: 0;
+                background: var(--bg);
+                color: var(--ink);
+                font-family:
+                    "Be Vietnam Pro",
+                    -apple-system,
+                    BlinkMacSystemFont,
+                    "Segoe UI",
+                    Helvetica,
+                    Arial,
+                    sans-serif;
+                transition:
+                    background 0.2s ease,
+                    color 0.2s ease;
+                overflow-x: hidden;
+            }
+            header {
+                position: sticky;
+                top: 0;
+                z-index: 50;
+                background: color-mix(in srgb, var(--panel) 70%, transparent);
+                backdrop-filter: blur(14px) saturate(180%);
+                -webkit-backdrop-filter: blur(14px) saturate(180%);
+                border-bottom: 1px solid var(--border);
+                padding: 14px 20px;
+                transition: background 0.2s ease;
+            }
+            .header-top {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                max-width: 1400px;
+                margin: 0 auto;
+            }
+            .header-row {
+                display: flex;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 12px;
+                align-items: center;
+                max-width: 1400px;
+                margin: 12px auto 0;
+                max-height: 600px;
+                opacity: 1;
+                overflow: hidden;
+                transition:
+                    max-height 0.25s ease,
+                    opacity 0.2s ease,
+                    margin 0.2s ease;
+            }
+            header.header-collapsed .header-row {
+                max-height: 0;
+                opacity: 0;
+                margin-top: 0;
+                pointer-events: none;
+            }
+            .header-title {
+                font-weight: 700;
+                font-size: 15px;
+                margin-right: 4px;
+                white-space: nowrap;
+            }
+            .header-title span {
+                color: var(--ink-soft);
+                font-weight: 400;
+                font-size: 12px;
+                display: block;
+            }
+            [data-tip] {
+                position: relative;
+            }
+            [data-tip]::after {
+                content: attr(data-tip);
+                position: absolute;
+                top: calc(100% + 8px);
+                left: 50%;
+                transform: translateX(-50%) translateY(-4px);
+                background: var(--ink);
+                color: var(--bg);
+                font-size: 11px;
+                line-height: 1.3;
+                padding: 5px 8px;
+                border-radius: 6px;
+                white-space: nowrap;
+                opacity: 0;
+                visibility: hidden; /* <-- Hide from document flow */
+                pointer-events: none;
+                transition:
+                    opacity 0.15s ease,
+                    transform 0.15s ease,
+                    visibility 0s linear 0.15s; /* Delay hiding visibility so fade-out shows */
+                z-index: 200;
+            }
+            [data-tip]::before {
+                content: "";
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                transform: translateX(-50%) translateY(1px);
+                border: 5px solid transparent;
+                border-bottom-color: var(--ink);
+                opacity: 0;
+                visibility: hidden; /* <-- Hide from document flow */
+                pointer-events: none;
+                transition:
+                    opacity 0.15s ease,
+                    visibility 0s linear 0.15s;
+                z-index: 200;
+            }
+            [data-tip]:hover::after,
+            [data-tip]:focus-visible::after {
+                opacity: 1;
+                visibility: visible; /* <-- Make visible on hover */
+                transform: translateX(-50%) translateY(0);
+                transition-delay: 0s;
+            }
+            [data-tip]:hover::before,
+            [data-tip]:focus-visible::before {
+                opacity: 1;
+                visibility: visible; /* <-- Make visible on hover */
+                transition-delay: 0s;
+            }
+            .field {
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+            }
+            .field label {
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--ink-soft);
+            }
+            input[type="text"] {
+                background: var(--bg);
+                border: 1px solid var(--border);
+                color: var(--ink);
+                border-radius: 6px;
+                padding: 7px 10px;
+                font-size: 13px;
+                font-family: inherit;
+            }
+
+            /* Text-only Dropdown UI */
+            .dropdown-wrap {
+                position: relative;
+                display: flex;
+                align-items: center;
+            }
+            .dropdown-icon {
+                position: absolute;
+                left: 0;
+                width: 14px;
+                height: 14px;
+                color: var(--ink-soft);
+                pointer-events: none;
+            }
+            select.text-select {
+                appearance: none;
+                -webkit-appearance: none;
+                background: transparent;
+                border: none;
+                color: var(--ink);
+                font-size: 13px;
+                font-weight: 500;
+                padding: 4px 8px 4px 20px;
+                cursor: pointer;
+                outline: none;
+                font-family: inherit;
+                transition: color 0.15s ease;
+            }
+            select.text-select:hover,
+            select.text-select:focus {
+                color: var(--accent);
+            }
+
+            #sampleText {
+                min-width: 260px;
+                flex: 1 1 260px;
+                max-height: 2rem;
+            }
+
+            /* Better Sliders */
+            .range-wrap {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                user-select: none;
+            }
+            .range-btn {
+                background: transparent;
+                border: none;
+                color: var(--ink-soft);
+                font-size: 16px;
+                line-height: 1;
+                padding: 0;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 22px;
+                height: 22px;
+                border-radius: 4px;
+                transition:
+                    background 0.15s,
+                    color 0.15s;
+            }
+            .range-btn:hover {
+                color: var(--ink);
+                background: var(--border);
+            }
+            input[type="range"] {
+                width: 90px;
+                -webkit-appearance: none;
+                appearance: none;
+                height: 4px;
+                border-radius: 999px;
+                background: var(--border);
+                outline: none;
+                cursor: pointer;
+            }
+            input[type="range"]::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                background: var(--accent);
+                border: 2px solid var(--panel);
+                cursor: pointer;
+            }
+            input[type="range"]::-moz-range-thumb {
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                background: var(--accent);
+                border: 2px solid var(--panel);
+                cursor: pointer;
+            }
+            input[type="range"]::-moz-range-track {
+                height: 4px;
+                border-radius: 999px;
+                background: var(--border);
+            }
+            .range-val {
+                font-size: 11px;
+                color: var(--ink-soft);
+                min-width: 34px;
+                text-align: right;
+            }
+
+            button {
+                border: 1px solid var(--border);
+                background: var(--chip);
+                color: var(--ink);
+                border-radius: 6px;
+                padding: 7px 12px;
+                font-size: 12px;
+                cursor: pointer;
+                font-family: inherit;
+            }
+            button:hover {
+                filter: brightness(0.95);
+            }
+            [data-theme="dark"] button:hover {
+                filter: brightness(1.15);
+            }
+            button.primary {
+                background: var(--accent);
+                color: var(--accent-ink);
+                border-color: var(--accent);
+            }
+
+            /* Better Switcher Pills */
+            .pill-toggles {
+                display: flex;
+                align-items: center;
+                background: var(--chip);
+                border-radius: 999px;
+                padding: 2px;
+                gap: 2px;
+                border: 1px solid var(--border);
+                height: 28px;
+                box-sizing: border-box;
+                overflow: hidden;
+            }
+            .pill-toggles button.toggle {
+                background: transparent;
+                border: none;
+                border-radius: 999px;
+                padding: 0 10px;
+                height: 24px;
+                font-size: 13px;
+                font-weight: 500;
+                line-height: 1;
+                color: var(--ink-soft);
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 28px;
+            }
+            .pill-toggles button.toggle:hover {
+                color: var(--ink);
+                background: color-mix(in srgb, var(--ink) 5%, transparent);
+                filter: none;
+            }
+            .pill-toggles button.toggle.active {
+                background: var(--panel);
+                color: var(--accent);
+                border-color: transparent;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+            [data-theme="dark"] .pill-toggles button.toggle.active {
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+            }
+
+            /* Reset All Button */
+            .reset-btn {
+                background: transparent;
+                border: 1px solid var(--border);
+                color: var(--ink-soft);
+                border-radius: 999px;
+                height: 28px;
+                padding: 0 12px;
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                transition: all 0.2s ease;
+            }
+            .reset-btn:hover {
+                color: var(--ink);
+                border-color: var(--ink-soft);
+                background: var(--chip);
+                filter: none;
+            }
+
+            /* Color Theme Circle Switchers */
+            .theme-circles {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+                height: 28px;
+            }
+            .theme-circle {
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                border: 2px solid transparent;
+                background: linear-gradient(
+                    135deg,
+                    var(--c1) 50%,
+                    var(--c2) 50%
+                );
+                background-clip: padding-box; /* Fixes the square gradient bleeding */
+                cursor: pointer;
+                padding: 0;
+                box-shadow: 0 0 0 1px var(--border);
+                transition:
+                    transform 0.2s ease,
+                    box-shadow 0.2s ease,
+                    border-color 0.2s ease;
+                -webkit-appearance: none; /* Resets default button styling */
+                appearance: none;
+                outline: none;
+            }
+            .theme-circle:hover {
+                transform: scale(1.1);
+            }
+            .theme-circle.active {
+                border-color: var(--bg);
+                box-shadow: 0 0 0 2px var(--ink);
+                transform: scale(1.1);
+            }
+
+            /* Light mode circle colors (default) */
+            .theme-circle[data-value="default"] {
+                --c1: #ffffff;
+                --c2: #1a1a1a;
+            }
+            .theme-circle[data-value="sunset"] {
+                --c1: #fff5f0;
+                --c2: #ff6b4a;
+            }
+            .theme-circle[data-value="ocean"] {
+                --c1: #f0f7fa;
+                --c2: #0891b2;
+            }
+            .theme-circle[data-value="forest"] {
+                --c1: #f2f8ee;
+                --c2: #4c9a2a;
+            }
+            .theme-circle[data-value="grape"] {
+                --c1: #f7f1fb;
+                --c2: #8b3fd1;
+            }
+
+            /* Dark mode circle colors */
+            [data-theme="dark"] .theme-circle[data-value="default"] {
+                --c1: #16161a;
+                --c2: #f0efe9;
+            }
+            [data-theme="dark"] .theme-circle[data-value="sunset"] {
+                --c1: #1f1310;
+                --c2: #ff7a56;
+            }
+            [data-theme="dark"] .theme-circle[data-value="ocean"] {
+                --c1: #0b1a1f;
+                --c2: #22b8d8;
+            }
+            [data-theme="dark"] .theme-circle[data-value="forest"] {
+                --c1: #0f180b;
+                --c2: #6cbf46;
+            }
+            [data-theme="dark"] .theme-circle[data-value="grape"] {
+                --c1: #150c1c;
+                --c2: #a566e0;
+            }
+
+            .spacer {
+                flex: 1 1 auto;
+            }
+            .count-pill {
+                font-size: 11px;
+                color: var(--ink-soft);
+                white-space: nowrap;
+            }
+            .header-toggle-btn {
+                flex-shrink: 0;
+                font-size: 14px;
+                line-height: 1;
+                padding: 6px 10px;
+            }
+            main {
+                max-width: 1400px;
+                margin: 24px auto 80px;
+                padding: 0 20px;
+            }
+            #grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+                gap: 16px;
+            }
+            #grid.list-view {
+                grid-template-columns: 1fr;
+            }
+            .card {
+                background: var(--panel);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 16px 18px;
+                box-shadow: var(--shadow);
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                min-width: 0; /* Prevents overflow expanding beyond container */
+            }
+            .card-meta {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .card-name-wrap {
+                min-width: 0;
+            }
+            .card-name {
+                font-size: 13px;
+                font-weight: 600;
+                cursor: pointer;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .card-sub {
+                font-size: 10.5px;
+                color: var(--ink-soft);
+                margin-top: 2px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .badges {
+                display: flex;
+                gap: 5px;
+                flex-shrink: 0;
+            }
+            .badge {
+                background: var(--chip);
+                color: var(--ink-soft);
+                font-size: 9.5px;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                padding: 3px 6px;
+                border-radius: 4px;
+                white-space: nowrap;
+            }
+            .badge-active {
+                color: var(--accent);
+            }
+            .specimen {
+                word-wrap: break-word;
+                line-height: 1.25;
+                min-height: 1.4em;
+                min-width: 0; /* Prevents long string blowout */
+            }
+            .specimen.nowrap {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .card-actions {
+                display: flex;
+                gap: 6px;
+                margin-top: 2px;
+            }
+            .card-actions button {
+                font-size: 11px;
+                padding: 5px 9px;
+            }
+            .pin-btn.pinned {
+                background: var(--accent);
+                color: var(--accent-ink);
+                border-color: var(--accent);
+            }
+            footer {
+                text-align: center;
+                font-size: 11px;
+                color: var(--ink-soft);
+                padding: 20px;
+            }
+            .empty-state {
+                text-align: center;
+                padding: 60px 20px;
+                color: var(--ink-soft);
+                font-size: 13px;
+            }
+            .toast {
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%) translateY(20px);
+                background: var(--ink);
+                color: var(--bg);
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 12px;
+                opacity: 0;
+                pointer-events: none;
+                transition:
+                    opacity 0.2s ease,
+                    transform 0.2s ease;
+                z-index: 100;
+            }
+            .toast.show {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+            .focus-mode {
+                display: none;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 6rem;
+                min-height: calc(100vh - 200px);
+                text-align: center;
+                padding: 20px;
+            }
+            .focus-mode.active {
+                display: flex;
+                justify-content: flex-start;
+            }
+            .focus-top {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                align-self: flex-start;
+                flex-wrap: wrap;
+            }
+            .focus-meta {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+                text-align: left;
+            }
+            .focus-sub {
+                font-size: 10.5px;
+                color: var(--ink-soft);
+            }
+            .focus-actions {
+                display: flex;
+                gap: 6px;
+                margin-left: auto;
+            }
+            .focus-label {
+                font-size: 13px;
+                color: var(--ink-soft);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+            .focus-text {
+                font-size: clamp(40px, 8vw, 140px);
+                line-height: 1.15;
+                outline: none;
+                max-width: 100%;
+                word-wrap: break-word;
+                cursor: text;
+            }
+            .focus-controls {
+                display: flex;
+                gap: 24px;
+                flex-wrap: wrap;
+                justify-content: center;
+                padding-top: 2rem;
+                border-top: 1px solid var(--border);
+                width: 100%;
+                max-width: 600px;
+            }
+            .focus-text:empty::before {
+                content: "Type something…";
+                color: var(--ink-soft);
+            }
+            [data-preset="sunset"] {
+                --bg: #fff5f0;
+                --panel: #ffffff;
+                --ink: #3a1f1a;
+                --ink-soft: #8a6656;
+                --border: #f0d9cd;
+                --accent: #ff6b4a;
+                --accent-ink: #ffffff;
+                --chip: #ffe9df;
+            }
+            [data-preset="sunset"][data-theme="dark"] {
+                --bg: #1f1310;
+                --panel: #2b1a15;
+                --ink: #ffe8df;
+                --ink-soft: #c99a89;
+                --border: #4a2e24;
+                --accent: #ff7a56;
+                --accent-ink: #1f1310;
+                --chip: #3a251d;
+            }
+            [data-preset="ocean"] {
+                --bg: #f0f7fa;
+                --panel: #ffffff;
+                --ink: #102b33;
+                --ink-soft: #5c7d87;
+                --border: #d3e6ec;
+                --accent: #0891b2;
+                --accent-ink: #ffffff;
+                --chip: #e3f2f6;
+            }
+            [data-preset="ocean"][data-theme="dark"] {
+                --bg: #0b1a1f;
+                --panel: #122731;
+                --ink: #dff3f7;
+                --ink-soft: #7fa3ad;
+                --border: #1f3b44;
+                --accent: #22b8d8;
+                --accent-ink: #071216;
+                --chip: #16323b;
+            }
+            [data-preset="forest"] {
+                --bg: #f2f8ee;
+                --panel: #ffffff;
+                --ink: #1c3312;
+                --ink-soft: #5f7a51;
+                --border: #dcebd2;
+                --accent: #4c9a2a;
+                --accent-ink: #ffffff;
+                --chip: #e6f2dd;
+            }
+            [data-preset="forest"][data-theme="dark"] {
+                --bg: #0f180b;
+                --panel: #182813;
+                --ink: #e4f2da;
+                --ink-soft: #8fae7c;
+                --border: #253d1c;
+                --accent: #6cbf46;
+                --accent-ink: #0b1207;
+                --chip: #203118;
+            }
+            [data-preset="grape"] {
+                --bg: #f7f1fb;
+                --panel: #ffffff;
+                --ink: #2c1638;
+                --ink-soft: #7c6389;
+                --border: #e6d7ef;
+                --accent: #8b3fd1;
+                --accent-ink: #ffffff;
+                --chip: #efe1f7;
+            }
+            [data-preset="grape"][data-theme="dark"] {
+                --bg: #150c1c;
+                --panel: #221430;
+                --ink: #efe1f7;
+                --ink-soft: #a68bb8;
+                --border: #3a2650;
+                --accent: #a566e0;
+                --accent-ink: #150c1c;
+                --chip: #2c1c3c;
+            }
+        </style>
+    </head>
+    <body data-theme="light">
+        <header>
+            <div class="header-top">
+                <div class="header-title">
+                    Font Preview<span id="headerSubtitle"></span>
+                </div>
+                <div class="spacer"></div>
+                <div class="count-pill" id="visibleCount"></div>
+                <button
+                    id="headerToggleBtn"
+                    class="header-toggle-btn"
+                    data-tip="Collapse header controls"
+                    title="Collapse header controls"
+                >
+                    ▾
+                </button>
+            </div>
+            <div class="header-row" id="headerControls">
+                <div class="field">
+                    <label for="sampleText">Preview text</label>
+                    <input
+                        type="text"
+                        id="sampleText"
+                        value="The quick brown fox jumps over the lazy dog — 0123456789"
+                    />
+                </div>
+
+                <div class="field">
+                    <label for="presetSelect">Text Preset</label>
+                    <div class="dropdown-wrap">
+                        <svg
+                            class="dropdown-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                        <select id="presetSelect" class="text-select">
+                            <option value="">Custom…</option>
+                            <option value="pangram">Pangram</option>
+                            <option value="alphabet">Alphabet</option>
+                            <option value="numbers">
+                                Numbers &amp; symbols
+                            </option>
+                            <option value="paragraph">Paragraph</option>
+                            <option value="name">Font name only</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="fontSize">Size</label>
+                    <div
+                        class="range-wrap"
+                        data-default="32"
+                        data-step="1"
+                        data-tip="Double click to reset"
+                    >
+                        <button
+                            type="button"
+                            class="range-btn minus"
+                            title="Decrease"
+                        >
+                            −
+                        </button>
+                        <input
+                            type="range"
+                            id="fontSize"
+                            min="12"
+                            max="120"
+                            value="32"
+                            step="1"
+                        />
+                        <button
+                            type="button"
+                            class="range-btn plus"
+                            title="Increase"
+                        >
+                            +
+                        </button>
+                        <span class="range-val" id="fontSizeVal">32px</span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="letterSpacing">Tracking</label>
+                    <div
+                        class="range-wrap"
+                        data-default="0"
+                        data-step="1"
+                        data-tip="Double click to reset"
+                    >
+                        <button
+                            type="button"
+                            class="range-btn minus"
+                            title="Decrease"
+                        >
+                            −
+                        </button>
+                        <input
+                            type="range"
+                            id="letterSpacing"
+                            min="-5"
+                            max="20"
+                            value="0"
+                            step="1"
+                        />
+                        <button
+                            type="button"
+                            class="range-btn plus"
+                            title="Increase"
+                        >
+                            +
+                        </button>
+                        <span class="range-val" id="letterSpacingVal">0px</span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="lineHeight">Leading</label>
+                    <div
+                        class="range-wrap"
+                        data-default="125"
+                        data-step="5"
+                        data-tip="Double click to reset"
+                    >
+                        <button
+                            type="button"
+                            class="range-btn minus"
+                            title="Decrease"
+                        >
+                            −
+                        </button>
+                        <input
+                            type="range"
+                            id="lineHeight"
+                            min="80"
+                            max="200"
+                            value="125"
+                            step="5"
+                        />
+                        <button
+                            type="button"
+                            class="range-btn plus"
+                            title="Increase"
+                        >
+                            +
+                        </button>
+                        <span class="range-val" id="lineHeightVal">1.25</span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="searchBox">Filter</label>
+                    <input
+                        type="text"
+                        id="searchBox"
+                        placeholder="Search name, file, weight…"
+                        style="min-width: 160px; height: 2rem"
+                    />
+                </div>
+
+                <div class="field">
+                    <label for="formatSelect">Font Format</label>
+                    <div class="dropdown-wrap">
+                        <svg
+                            class="dropdown-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                        <select id="formatSelect" class="text-select">
+                            <option value="auto">Auto</option>
+                            <option value="otf">Prefer OTF</option>
+                            <option value="ttf">Prefer TTF</option>
+                            <option value="woff2">Prefer WOFF2</option>
+                            <option value="woff">Prefer WOFF</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="sortSelect">Sort</label>
+                    <div class="dropdown-wrap">
+                        <svg
+                            class="dropdown-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                        <select id="sortSelect" class="text-select">
+                            <option value="name">Name A–Z</option>
+                            <option value="name-desc">Name Z–A</option>
+                            <option value="weight">Weight</option>
+                            <option value="size">File size</option>
+                            <option value="zip">Source zip</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>Color Theme</label>
+                    <div class="theme-circles" id="themeCircleContainer">
+                        <button
+                            class="theme-circle active"
+                            data-value="default"
+                            title="Default"
+                        ></button>
+                        <button
+                            class="theme-circle"
+                            data-value="sunset"
+                            title="Sunset"
+                        ></button>
+                        <button
+                            class="theme-circle"
+                            data-value="ocean"
+                            title="Ocean"
+                        ></button>
+                        <button
+                            class="theme-circle"
+                            data-value="forest"
+                            title="Forest"
+                        ></button>
+                        <button
+                            class="theme-circle"
+                            data-value="grape"
+                            title="Grape"
+                        ></button>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>&nbsp;</label>
+                    <div
+                        style="
+                            display: flex;
+                            gap: 8px;
+                            align-items: center;
+                            flex-wrap: wrap;
+                        "
+                    >
+                        <div class="pill-toggles">
+                            <button
+                                id="boldToggle"
+                                class="toggle"
+                                data-tip="Force bold previews"
+                                title="Force bold previews"
+                            >
+                                B
+                            </button>
+                            <button
+                                id="italicToggle"
+                                class="toggle"
+                                data-tip="Force italic previews"
+                                title="Force italic previews"
+                            >
+                                <i>I</i>
+                            </button>
+                            <button
+                                id="uppercaseToggle"
+                                class="toggle"
+                                data-tip="Uppercase previews"
+                                title="Uppercase previews"
+                            >
+                                AA
+                            </button>
+                        </div>
+
+                        <div class="pill-toggles">
+                            <button
+                                id="pinnedOnlyToggle"
+                                class="toggle"
+                                data-tip="Pinned fonts only"
+                                title="Pinned fonts only"
+                            >
+                                ★
+                            </button>
+                            <button
+                                id="hiddenOnlyToggle"
+                                class="toggle"
+                                data-tip="Hidden fonts only"
+                                title="Hidden fonts only"
+                            >
+                                🙈
+                            </button>
+                            <button
+                                id="viewToggle"
+                                class="toggle"
+                                data-tip="Switch grid/list view"
+                                title="Switch grid/list view"
+                            >
+                                ☰
+                            </button>
+                            <button
+                                id="wrapToggle"
+                                class="toggle"
+                                data-tip="Toggle one-line/wrap"
+                                title="Toggle one-line/wrap"
+                            >
+                                ⋯
+                            </button>
+                            <button
+                                id="themeToggle"
+                                class="toggle"
+                                data-tip="Toggle dark mode"
+                                title="Toggle dark mode"
+                            >
+                                ◐
+                            </button>
+                        </div>
+
+                        <button
+                            id="resetAllBtn"
+                            class="reset-btn"
+                            data-tip="Reset to defaults"
+                        >
+                            ↺ Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div id="grid"></div>
+            <div class="empty-state" id="emptyState" style="display: none">
+                No fonts match your filter.
+            </div>
+
+            <div id="focusMode" class="focus-mode">
+                <div class="focus-top">
+                    <button id="focusBackBtn">← Back</button>
+                    <div class="focus-meta">
+                        <div class="focus-label" id="focusLabel"></div>
+                        <div class="focus-sub" id="focusSub"></div>
+                    </div>
+                    <div class="focus-actions">
+                        <button id="focusPinBtn"></button>
+                        <button id="focusFaceBtn">Copy @font-face</button>
+                    </div>
+                </div>
+                <div
+                    id="focusText"
+                    class="focus-text"
+                    contenteditable="true"
+                    spellcheck="false"
+                ></div>
+
+                <div class="focus-controls">
+                    <div class="field">
+                        <label for="focusSize">Size</label>
+                        <div
+                            class="range-wrap"
+                            data-default="96"
+                            data-step="2"
+                            data-tip="Double click to reset"
+                        >
+                            <button
+                                type="button"
+                                class="range-btn minus"
+                                title="Decrease"
+                            >
+                                −
+                            </button>
+                            <input
+                                type="range"
+                                id="focusSize"
+                                min="12"
+                                max="300"
+                                value="96"
+                                step="2"
+                            />
+                            <button
+                                type="button"
+                                class="range-btn plus"
+                                title="Increase"
+                            >
+                                +
+                            </button>
+                            <span class="range-val" id="focusSizeVal"
+                                >96px</span
+                            >
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="focusTracking">Tracking</label>
+                        <div
+                            class="range-wrap"
+                            data-default="0"
+                            data-step="1"
+                            data-tip="Double click to reset"
+                        >
+                            <button
+                                type="button"
+                                class="range-btn minus"
+                                title="Decrease"
+                            >
+                                −
+                            </button>
+                            <input
+                                type="range"
+                                id="focusTracking"
+                                min="-5"
+                                max="20"
+                                value="0"
+                                step="1"
+                            />
+                            <button
+                                type="button"
+                                class="range-btn plus"
+                                title="Increase"
+                            >
+                                +
+                            </button>
+                            <span class="range-val" id="focusTrackingVal"
+                                >0px</span
+                            >
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="focusLeading">Leading</label>
+                        <div
+                            class="range-wrap"
+                            data-default="115"
+                            data-step="5"
+                            data-tip="Double click to reset"
+                        >
+                            <button
+                                type="button"
+                                class="range-btn minus"
+                                title="Decrease"
+                            >
+                                −
+                            </button>
+                            <input
+                                type="range"
+                                id="focusLeading"
+                                min="80"
+                                max="200"
+                                value="115"
+                                step="5"
+                            />
+                            <button
+                                type="button"
+                                class="range-btn plus"
+                                title="Increase"
+                            >
+                                +
+                            </button>
+                            <span class="range-val" id="focusLeadingVal"
+                                >1.15</span
+                            >
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            Generated locally __COUNT__ font files from __ZIP_COUNT__ zip
+            file(s).
+        </footer>
+        <div class="toast" id="toast"></div>
+
+        <style id="fontFaceStyles"></style>
+
+        <script>
+            const PAGE_ID = "__PAGE_ID__";
+            const PIN_KEY = `fontPreview.${PAGE_ID}.pinned`;
+            const HIDDEN_KEY = `fontPreview.${PAGE_ID}.hidden`;
+            const THEME_KEY = `fontPreview.theme`;
+            const COLOR_PRESET_KEY = `fontPreview.colorPreset`;
+            const HEADER_COLLAPSE_KEY = "fontPreview.headerCollapsed";
+
+            const FONTS = __MANIFEST_JSON__;
+
+            const PRESETS = {
+                pangram: "The quick brown fox jumps over the lazy dog",
+                alphabet:
+                    "ABCDEFGHIJKLM abcdefghijklm NOPQRSTUVWXYZ nopqrstuvwxyz",
+                numbers: "0123456789 !@#$%^&*()_+-=[]{}",
+                paragraph:
+                    "Typography is the craft of endowing human language with a durable visual form. Great type disappears into meaning while still carrying its own quiet character.",
+                name: "__NAME__",
+            };
+
+            function orderedFormats(f, preference) {
+                const formats = f.formats.slice();
+                if (preference && preference !== "auto") {
+                    formats.sort(
+                        (a, b) =>
+                            (a.ext === preference ? -1 : 0) -
+                            (b.ext === preference ? -1 : 0),
+                    );
+                }
+                return formats;
+            }
+
+            function buildFontFaceCSS(preference) {
+                return FONTS.map((f) => {
+                    const formats = orderedFormats(f, preference);
+                    const srcList = formats
+                        .map(
+                            (fmt) =>
+                                `url("fonts/${encodeURIComponent(fmt.file)}") format("${fmt.format}")`,
+                        )
+                        .join(",\n       ");
+                    return `
+@font-face {
+  font-family: "${f.family}";
+  src: ${srcList};
+  font-weight: ${f.weight};
+  font-style: ${f.style};
+  font-display: swap;
+}`;
+                }).join("\n");
+            }
+
+            const styleEl = document.getElementById("fontFaceStyles");
+            const grid = document.getElementById("grid");
+            const emptyState = document.getElementById("emptyState");
+            const focusModeEl = document.getElementById("focusMode");
+            const focusTextEl = document.getElementById("focusText");
+            const focusLabelEl = document.getElementById("focusLabel");
+            const focusSubEl = document.getElementById("focusSub");
+            const focusPinBtn = document.getElementById("focusPinBtn");
+            const focusFaceBtn = document.getElementById("focusFaceBtn");
+            const focusBackBtn = document.getElementById("focusBackBtn");
+            const focusSizeEl = document.getElementById("focusSize");
+            const focusTrackingEl = document.getElementById("focusTracking");
+            const focusLeadingEl = document.getElementById("focusLeading");
+            const sampleTextEl = document.getElementById("sampleText");
+            const fontSizeEl = document.getElementById("fontSize");
+            const letterSpacingEl = document.getElementById("letterSpacing");
+            const lineHeightEl = document.getElementById("lineHeight");
+            const searchBoxEl = document.getElementById("searchBox");
+            const formatSelectEl = document.getElementById("formatSelect");
+            const sortSelectEl = document.getElementById("sortSelect");
+            const presetSelectEl = document.getElementById("presetSelect");
+            const boldToggleEl = document.getElementById("boldToggle");
+            const italicToggleEl = document.getElementById("italicToggle");
+            const uppercaseToggleEl =
+                document.getElementById("uppercaseToggle");
+            const pinnedOnlyEl = document.getElementById("pinnedOnlyToggle");
+            const viewToggleEl = document.getElementById("viewToggle");
+            const wrapToggleEl = document.getElementById("wrapToggle");
+            const themeToggleEl = document.getElementById("themeToggle");
+            const hiddenOnlyEl = document.getElementById("hiddenOnlyToggle");
+            const resetAllBtn = document.getElementById("resetAllBtn");
+            const visibleCountEl = document.getElementById("visibleCount");
+            const toastEl = document.getElementById("toast");
+            const headerEl = document.querySelector("header");
+            const headerToggleBtn = document.getElementById("headerToggleBtn");
+            const headerSubtitleEl = document.getElementById("headerSubtitle");
+            const themeCircles = document.querySelectorAll(".theme-circle");
+
+            let pinned = new Set(
+                JSON.parse(localStorage.getItem(PIN_KEY) || "[]"),
+            );
+            let hiddenFonts = new Set(
+                JSON.parse(localStorage.getItem(HIDDEN_KEY) || "[]"),
+            );
+            let forceBold = false;
+            let forceItalic = false;
+            let forceUppercase = false;
+            let pinnedOnly = false;
+            let hiddenOnly = false;
+            let listView = false;
+            let nowrapMode = false;
+            let formatPreference = "auto";
+
+            // Default to NOT collapsed (if null/undefined, evaluates to false)
+            let headerCollapsed =
+                localStorage.getItem(HEADER_COLLAPSE_KEY) === "1";
+
+            headerSubtitleEl.textContent = `${FONTS.length} font${FONTS.length === 1 ? "" : "s"} loaded`;
+
+            styleEl.textContent = buildFontFaceCSS(formatPreference);
+
+            function savePinned() {
+                localStorage.setItem(PIN_KEY, JSON.stringify([...pinned]));
+            }
+
+            function saveHidden() {
+                localStorage.setItem(
+                    HIDDEN_KEY,
+                    JSON.stringify([...hiddenFonts]),
+                );
+            }
+
+            function showToast(msg) {
+                toastEl.textContent = msg;
+                toastEl.classList.add("show");
+                clearTimeout(showToast._t);
+                showToast._t = setTimeout(
+                    () => toastEl.classList.remove("show"),
+                    1400,
+                );
+            }
+
+            function copyText(text, msg) {
+                navigator.clipboard
+                    .writeText(text)
+                    .then(() => showToast(msg))
+                    .catch(() => showToast("Could not copy"));
+            }
+
+            function currentSampleText(fontDisplayName) {
+                const preset = presetSelectEl.value;
+                if (preset === "name") return fontDisplayName;
+                return sampleTextEl.value || "Type something above";
+            }
+
+            function updateFocusPinBtn(f) {
+                focusPinBtn.className =
+                    "pin-btn" + (pinned.has(f.id) ? " pinned" : "");
+                focusPinBtn.textContent = pinned.has(f.id)
+                    ? "★ Pinned"
+                    : "☆ Pin";
+            }
+
+            function applyFocusStyles() {
+                focusTextEl.style.fontSize = focusSizeEl.value + "px";
+                focusTextEl.style.letterSpacing = focusTrackingEl.value + "px";
+                focusTextEl.style.lineHeight = focusLeadingEl.value / 100;
+            }
+
+            focusSizeEl.addEventListener("input", () => {
+                document.getElementById("focusSizeVal").textContent =
+                    focusSizeEl.value + "px";
+                applyFocusStyles();
+            });
+            focusTrackingEl.addEventListener("input", () => {
+                document.getElementById("focusTrackingVal").textContent =
+                    focusTrackingEl.value + "px";
+                applyFocusStyles();
+            });
+            focusLeadingEl.addEventListener("input", () => {
+                document.getElementById("focusLeadingVal").textContent = (
+                    focusLeadingEl.value / 100
+                ).toFixed(2);
+                applyFocusStyles();
+            });
+
+            function enterFocus(f) {
+                const formats = orderedFormats(f, formatPreference);
+                const active = formats[0];
+
+                focusModeEl.dataset.fontId = f.id;
+                focusLabelEl.textContent = f.display_name;
+                focusSubEl.textContent = `${active.file} · ${active.size_kb} KB · from ${active.source_zip}`;
+                focusTextEl.style.fontFamily = `"${f.family}"`;
+                if (!focusTextEl.textContent.trim()) {
+                    focusTextEl.textContent =
+                        sampleTextEl.value ||
+                        "The quick brown fox jumps over the lazy dog";
+                }
+
+                updateFocusPinBtn(f);
+                focusPinBtn.onclick = () => {
+                    if (pinned.has(f.id)) {
+                        pinned.delete(f.id);
+                    } else {
+                        pinned.add(f.id);
+                    }
+                    savePinned();
+                    updateFocusPinBtn(f);
+                };
+
+                focusFaceBtn.onclick = () => {
+                    const srcList = formats
+                        .map(
+                            (fmt) =>
+                                `url("fonts/${fmt.file}") format("${fmt.format}")`,
+                        )
+                        .join(",\n       ");
+                    copyText(
+                        `@font-face {\n  font-family: "${f.family}";\n  src: ${srcList};\n  font-weight: ${f.weight};\n  font-style: ${f.style};\n}`,
+                        "Copied @font-face rule",
+                    );
+                };
+
+                grid.style.display = "none";
+                emptyState.style.display = "none";
+                focusModeEl.classList.add("active");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                applyFocusStyles();
+                focusTextEl.focus();
+            }
+
+            function exitFocus() {
+                focusModeEl.classList.remove("active");
+                grid.style.display = "";
+                render();
+            }
+
+            focusBackBtn.addEventListener("click", exitFocus);
+
+            function buildCard(f) {
+                const formats = orderedFormats(f, formatPreference);
+                const active = formats[0];
+
+                const card = document.createElement("div");
+                card.className = "card";
+                card.dataset.id = f.id;
+
+                const meta = document.createElement("div");
+                meta.className = "card-meta";
+
+                const nameWrap = document.createElement("div");
+                nameWrap.className = "card-name-wrap";
+                const nameEl = document.createElement("div");
+                nameEl.className = "card-name";
+                nameEl.textContent = f.display_name;
+                nameEl.title = "Click to copy CSS font-family";
+                nameEl.onclick = () =>
+                    copyText(
+                        `font-family: "${f.family}";`,
+                        `Copied CSS for ${f.display_name}`,
+                    );
+                const subEl = document.createElement("div");
+                subEl.className = "card-sub";
+                subEl.textContent = `${active.file} · ${active.size_kb} KB · from ${active.source_zip}`;
+                subEl.title = subEl.textContent;
+                nameWrap.appendChild(nameEl);
+                nameWrap.appendChild(subEl);
+
+                const badges = document.createElement("div");
+                badges.className = "badges";
+                const formatBadges = formats
+                    .map(
+                        (fmt) =>
+                            `<span class="badge${fmt === active ? " badge-active" : ""}">${fmt.ext}</span>`,
+                    )
+                    .join("");
+                badges.innerHTML =
+                    formatBadges +
+                    `<span class="badge">${f.weight}</span>` +
+                    (f.style === "italic"
+                        ? '<span class="badge">italic</span>'
+                        : "");
+
+                meta.appendChild(nameWrap);
+                meta.appendChild(badges);
+
+                const specimen = document.createElement("div");
+                specimen.className = "specimen" + (nowrapMode ? " nowrap" : "");
+                specimen.style.fontFamily = `"${f.family}"`;
+                specimen.textContent = currentSampleText(f.display_name);
+
+                const actions = document.createElement("div");
+                actions.className = "card-actions";
+                const pinBtn = document.createElement("button");
+                pinBtn.className =
+                    "pin-btn" + (pinned.has(f.id) ? " pinned" : "");
+                pinBtn.textContent = pinned.has(f.id) ? "★ Pinned" : "☆ Pin";
+                pinBtn.onclick = () => {
+                    if (pinned.has(f.id)) {
+                        pinned.delete(f.id);
+                    } else {
+                        pinned.add(f.id);
+                    }
+                    savePinned();
+                    render();
+                };
+                const faceBtn = document.createElement("button");
+                faceBtn.textContent = "Copy @font-face";
+                faceBtn.onclick = () => {
+                    const srcList = formats
+                        .map(
+                            (fmt) =>
+                                `url("fonts/${fmt.file}") format("${fmt.format}")`,
+                        )
+                        .join(",\n       ");
+                    copyText(
+                        `@font-face {\n  font-family: "${f.family}";\n  src: ${srcList};\n  font-weight: ${f.weight};\n  font-style: ${f.style};\n}`,
+                        "Copied @font-face rule",
+                    );
+                };
+                actions.appendChild(pinBtn);
+                actions.appendChild(faceBtn);
+
+                const hideBtn = document.createElement("button");
+                const isHidden = hiddenFonts.has(f.id);
+                hideBtn.textContent = isHidden ? "Unhide" : "Hide";
+                hideBtn.title = isHidden
+                    ? "Bring this font back to the list"
+                    : "🙈 Hide this font from the list";
+                hideBtn.onclick = () => {
+                    if (isHidden) {
+                        hiddenFonts.delete(f.id);
+                    } else {
+                        hiddenFonts.add(f.id);
+                    }
+                    saveHidden();
+                    render();
+                };
+                actions.appendChild(hideBtn);
+
+                const playBtn = document.createElement("button");
+                playBtn.textContent = "▶ Play";
+                playBtn.title = "Focus mode: big editable preview";
+                playBtn.onclick = () => enterFocus(f);
+                actions.appendChild(playBtn);
+
+                card.appendChild(meta);
+                card.appendChild(specimen);
+                card.appendChild(actions);
+                return card;
+            }
+
+            function applySpecimenStyles() {
+                const size = fontSizeEl.value + "px";
+                const spacing = letterSpacingEl.value + "px";
+                const leading = lineHeightEl.value / 100;
+                document.querySelectorAll(".specimen").forEach((el) => {
+                    el.style.fontSize = size;
+                    el.style.letterSpacing = spacing;
+                    el.style.lineHeight = leading;
+                    el.style.fontWeight = forceBold ? "700" : "";
+                    el.style.fontStyle = forceItalic ? "italic" : "";
+                    el.style.textTransform = forceUppercase ? "uppercase" : "";
+                    el.classList.toggle("nowrap", nowrapMode);
+                });
+            }
+
+            function updateSpecimenText() {
+                document.querySelectorAll(".card").forEach((card) => {
+                    const f = FONTS.find((x) => x.id == card.dataset.id);
+                    const specimen = card.querySelector(".specimen");
+                    if (f && specimen)
+                        specimen.textContent = currentSampleText(
+                            f.display_name,
+                        );
+                });
+            }
+
+            function render() {
+                const query = searchBoxEl.value.trim().toLowerCase();
+                let list = FONTS.filter((f) => {
+                    const isHidden = hiddenFonts.has(f.id);
+                    if (hiddenOnly) {
+                        if (!isHidden) return false;
+                    } else {
+                        if (isHidden) return false;
+                    }
+                    if (pinnedOnly && !pinned.has(f.id)) return false;
+                    if (!query) return true;
+                    return (
+                        f.display_name.toLowerCase().includes(query) ||
+                        f.formats.some(
+                            (fmt) =>
+                                fmt.file.toLowerCase().includes(query) ||
+                                fmt.ext.includes(query),
+                        ) ||
+                        f.source_zip.toLowerCase().includes(query) ||
+                        String(f.weight).includes(query) ||
+                        f.style.includes(query)
+                    );
+                });
+
+                const sort = sortSelectEl.value;
+                list = list.slice().sort((a, b) => {
+                    if (sort === "name")
+                        return a.display_name.localeCompare(b.display_name);
+                    if (sort === "name-desc")
+                        return b.display_name.localeCompare(a.display_name);
+                    if (sort === "weight") return a.weight - b.weight;
+                    if (sort === "size") return b.size_kb - a.size_kb;
+                    if (sort === "zip")
+                        return a.source_zip.localeCompare(b.source_zip);
+                    return 0;
+                });
+
+                grid.innerHTML = "";
+                list.forEach((f) => grid.appendChild(buildCard(f)));
+                applySpecimenStyles();
+
+                emptyState.style.display = list.length === 0 ? "block" : "none";
+                emptyState.textContent = hiddenOnly
+                    ? "No hidden fonts."
+                    : "No fonts match your filter.";
+
+                const hiddenCount = hiddenFonts.size;
+                visibleCountEl.textContent = hiddenOnly
+                    ? `Showing ${list.length} hidden`
+                    : `Showing ${list.length} of ${FONTS.length}${hiddenCount ? ` (${hiddenCount} hidden)` : ""}`;
+            }
+
+            // Slider +/- and double click behaviors
+            document.querySelectorAll(".range-wrap").forEach((wrap) => {
+                const input = wrap.querySelector('input[type="range"]');
+                const minus = wrap.querySelector(".minus");
+                const plus = wrap.querySelector(".plus");
+                const defVal = wrap.dataset.default;
+                const step = parseFloat(input.step) || 1;
+
+                if (minus && plus) {
+                    minus.addEventListener("click", () => {
+                        input.value = Math.max(
+                            parseFloat(input.min),
+                            parseFloat(input.value) - step,
+                        );
+                        input.dispatchEvent(new Event("input"));
+                    });
+                    plus.addEventListener("click", () => {
+                        input.value = Math.min(
+                            parseFloat(input.max),
+                            parseFloat(input.value) + step,
+                        );
+                        input.dispatchEvent(new Event("input"));
+                    });
+                }
+
+                wrap.addEventListener("dblclick", (e) => {
+                    input.value = defVal;
+                    input.dispatchEvent(new Event("input"));
+                    window.getSelection().removeAllRanges();
+                });
+            });
+
+            // Event wiring
+            sampleTextEl.addEventListener("input", () => {
+                presetSelectEl.value = "";
+                updateSpecimenText();
+            });
+            fontSizeEl.addEventListener("input", () => {
+                document.getElementById("fontSizeVal").textContent =
+                    fontSizeEl.value + "px";
+                applySpecimenStyles();
+            });
+            letterSpacingEl.addEventListener("input", () => {
+                document.getElementById("letterSpacingVal").textContent =
+                    letterSpacingEl.value + "px";
+                applySpecimenStyles();
+            });
+            lineHeightEl.addEventListener("input", () => {
+                document.getElementById("lineHeightVal").textContent = (
+                    lineHeightEl.value / 100
+                ).toFixed(2);
+                applySpecimenStyles();
+            });
+            searchBoxEl.addEventListener("input", render);
+            formatSelectEl.addEventListener("change", () => {
+                formatPreference = formatSelectEl.value;
+                styleEl.textContent = buildFontFaceCSS(formatPreference);
+                render();
+            });
+            sortSelectEl.addEventListener("change", render);
+            presetSelectEl.addEventListener("change", () => {
+                const val = presetSelectEl.value;
+                if (val && val !== "name" && PRESETS[val])
+                    sampleTextEl.value = PRESETS[val];
+                updateSpecimenText();
+            });
+            boldToggleEl.addEventListener("click", () => {
+                forceBold = !forceBold;
+                boldToggleEl.classList.toggle("active", forceBold);
+                applySpecimenStyles();
+            });
+            italicToggleEl.addEventListener("click", () => {
+                forceItalic = !forceItalic;
+                italicToggleEl.classList.toggle("active", forceItalic);
+                applySpecimenStyles();
+            });
+            uppercaseToggleEl.addEventListener("click", () => {
+                forceUppercase = !forceUppercase;
+                uppercaseToggleEl.classList.toggle("active", forceUppercase);
+                applySpecimenStyles();
+            });
+            pinnedOnlyEl.addEventListener("click", () => {
+                pinnedOnly = !pinnedOnly;
+                pinnedOnlyEl.classList.toggle("active", pinnedOnly);
+                render();
+            });
+            hiddenOnlyEl.addEventListener("click", () => {
+                hiddenOnly = !hiddenOnly;
+                hiddenOnlyEl.classList.toggle("active", hiddenOnly);
+                render();
+            });
+            viewToggleEl.addEventListener("click", () => {
+                listView = !listView;
+                grid.classList.toggle("list-view", listView);
+                viewToggleEl.classList.toggle("active", listView);
+            });
+            wrapToggleEl.addEventListener("click", () => {
+                nowrapMode = !nowrapMode;
+                wrapToggleEl.classList.toggle("active", nowrapMode);
+                applySpecimenStyles();
+            });
+            themeToggleEl.addEventListener("click", () => {
+                const body = document.body;
+                const next = body.dataset.theme === "dark" ? "light" : "dark";
+                body.dataset.theme = next;
+                themeToggleEl.classList.toggle("active", next === "dark");
+                localStorage.setItem(THEME_KEY, next);
+            });
+
+            // Reset All logic
+            resetAllBtn.addEventListener("click", () => {
+                sampleTextEl.value =
+                    "The quick brown fox jumps over the lazy dog — 0123456789";
+                presetSelectEl.value = "";
+                searchBoxEl.value = "";
+                formatSelectEl.value = "auto";
+                sortSelectEl.value = "name";
+
+                fontSizeEl.value = 32;
+                letterSpacingEl.value = 0;
+                lineHeightEl.value = 125;
+
+                document.getElementById("fontSizeVal").textContent = "32px";
+                document.getElementById("letterSpacingVal").textContent = "0px";
+                document.getElementById("lineHeightVal").textContent = "1.25";
+
+                forceBold = false;
+                forceItalic = false;
+                forceUppercase = false;
+                pinnedOnly = false;
+                hiddenOnly = false;
+                listView = false;
+                nowrapMode = false;
+
+                boldToggleEl.classList.remove("active");
+                italicToggleEl.classList.remove("active");
+                uppercaseToggleEl.classList.remove("active");
+                pinnedOnlyEl.classList.remove("active");
+                hiddenOnlyEl.classList.remove("active");
+                viewToggleEl.classList.remove("active");
+                wrapToggleEl.classList.remove("active");
+                themeToggleEl.classList.remove("active");
+                grid.classList.remove("list-view");
+
+                document.body.dataset.preset = "default";
+                document.body.dataset.theme = "light";
+                localStorage.setItem(COLOR_PRESET_KEY, "default");
+                localStorage.setItem(THEME_KEY, "light");
+                updateThemeCircles("default");
+
+                formatPreference = "auto";
+                styleEl.textContent = buildFontFaceCSS(formatPreference);
+
+                updateSpecimenText();
+                applySpecimenStyles();
+                render();
+            });
+
+            // Color preset circle switcher
+            function updateThemeCircles(val) {
+                themeCircles.forEach((btn) => {
+                    btn.classList.toggle("active", btn.dataset.value === val);
+                });
+            }
+
+            themeCircles.forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const val = btn.dataset.value;
+                    document.body.dataset.preset = val;
+                    localStorage.setItem(COLOR_PRESET_KEY, val);
+                    updateThemeCircles(val);
+                });
+            });
+
+            // Sticky-header minimizer logic
+            function updateHeaderCollapseUI() {
+                const atTop = window.scrollY <= 4;
+                const shouldCollapse = headerCollapsed && !atTop;
+                headerEl.classList.toggle("header-collapsed", shouldCollapse);
+                headerToggleBtn.classList.toggle("active", headerCollapsed);
+                headerToggleBtn.textContent = headerCollapsed ? "▸" : "▾";
+                const label = headerCollapsed
+                    ? "Expand header controls"
+                    : "Collapse header controls";
+                headerToggleBtn.title = label;
+                headerToggleBtn.dataset.tip = label;
+            }
+
+            headerToggleBtn.addEventListener("click", () => {
+                headerCollapsed = !headerCollapsed;
+                localStorage.setItem(
+                    HEADER_COLLAPSE_KEY,
+                    headerCollapsed ? "1" : "0",
+                );
+                updateHeaderCollapseUI();
+            });
+            window.addEventListener("scroll", updateHeaderCollapseUI, {
+                passive: true,
+            });
+
+            // Restore theme, color preset, and header state
+            const savedTheme = localStorage.getItem(THEME_KEY);
+            if (savedTheme) {
+                document.body.dataset.theme = savedTheme;
+                themeToggleEl.classList.toggle("active", savedTheme === "dark");
+            }
+            const savedPreset =
+                localStorage.getItem(COLOR_PRESET_KEY) || "default";
+            document.body.dataset.preset = savedPreset;
+            updateThemeCircles(savedPreset);
+            updateHeaderCollapseUI();
+
+            render();
+        </script>
+    </body>
+</html>
