@@ -511,7 +511,7 @@
             }
             main {
                 max-width: 1400px;
-                margin: 24px auto 80px;
+                margin: 24px auto 40px;
                 padding: 0 20px;
             }
             #grid {
@@ -659,6 +659,50 @@
                 color: var(--accent-ink);
                 border-color: var(--accent);
             }
+
+            /* Pagination Styles */
+            .pagination {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 6px;
+                margin: 20px auto 40px;
+                flex-wrap: wrap;
+                padding: 0 20px;
+            }
+            .page-link {
+                padding: 6px 12px;
+                border-radius: 6px;
+                border: 1px solid var(--border);
+                color: var(--ink);
+                text-decoration: none;
+                font-size: 13px;
+                transition: all 0.15s ease;
+                background: var(--panel);
+                cursor: pointer;
+            }
+            a.page-link:hover {
+                background: var(--chip);
+                border-color: var(--ink-soft);
+            }
+            .page-link.active {
+                background: var(--ink);
+                color: var(--bg);
+                border-color: var(--ink);
+                cursor: default;
+            }
+            .page-link.disabled {
+                opacity: 0.4;
+                pointer-events: none;
+                background: transparent;
+                border-color: transparent;
+            }
+            .page-ellipsis {
+                color: var(--ink-soft);
+                padding: 0 4px;
+                font-size: 14px;
+            }
+
             footer {
                 text-align: center;
                 font-size: 11px;
@@ -1190,7 +1234,7 @@
                 </div>
 
                 <div class="field">
-                    <label for="fontTypeSelect">Font Type (Experimental)</label>
+                    <label for="fontTypeSelect">Font Type</label>
                     <div class="dropdown-wrap">
                         <svg
                             class="dropdown-icon"
@@ -1516,6 +1560,8 @@
             </div>
         </main>
 
+        __PAGINATION__
+
         <footer>
             Generated locally __COUNT__ font files from __ZIP_COUNT__ zip
             file(s).
@@ -1533,6 +1579,9 @@
             const HEADER_COLLAPSE_KEY = "fontPreview.headerCollapsed";
 
             const FONTS = __MANIFEST_JSON__;
+            const TOTAL_FONTS = parseInt("__COUNT__", 10) || FONTS.length;
+            const PAGE_NUM = parseInt("__PAGE_NUM__", 10) || 1;
+            const TOTAL_PAGES = parseInt("__TOTAL_PAGES__", 10) || 1;
 
             const PRESETS = {
                 pangram: "The quick brown fox jumps over the lazy dog",
@@ -1636,7 +1685,11 @@
             let headerCollapsed =
                 localStorage.getItem(HEADER_COLLAPSE_KEY) === "1";
 
-            headerSubtitleEl.textContent = `${FONTS.length} font${FONTS.length === 1 ? "" : "s"} loaded`;
+            if (TOTAL_PAGES > 1) {
+                headerSubtitleEl.textContent = `Page ${PAGE_NUM} of ${TOTAL_PAGES} (${TOTAL_FONTS} fonts total)`;
+            } else {
+                headerSubtitleEl.textContent = `${TOTAL_FONTS} font${TOTAL_FONTS === 1 ? "" : "s"} loaded`;
+            }
 
             styleEl.textContent = buildFontFaceCSS(formatPreference);
 
@@ -1989,13 +2042,13 @@
 
                 emptyState.style.display = list.length === 0 ? "block" : "none";
                 emptyState.textContent = hiddenOnly
-                    ? "No hidden fonts."
-                    : "No fonts match your filter.";
+                    ? "No hidden fonts on this page."
+                    : "No fonts match your filter on this page.";
 
                 const hiddenCount = hiddenFonts.size;
                 visibleCountEl.textContent = hiddenOnly
-                    ? `Showing ${list.length} hidden`
-                    : `Showing ${list.length} of ${FONTS.length}${hiddenCount ? ` (${hiddenCount} hidden)` : ""}`;
+                    ? `Showing ${list.length} hidden (this page)`
+                    : `Showing ${list.length} of ${FONTS.length} on this page${hiddenCount ? ` (${hiddenCount} hidden globally)` : ""}`;
             }
 
             // Slider +/- and double click behaviors

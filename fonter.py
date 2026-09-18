@@ -28,6 +28,7 @@ Usage:
     python3 fonter.py --max-depth 8       # go deeper than the default 4 levels
     python3 fonter.py --folders-only      # skip files sitting directly in the current folder
     python3 fonter.py --fonts-only        # skip zip files, only look for loose font files
+    python3 fonter.py --page-size 100     # how many fonts per page (default 50)
 
 Optional dependency for metadata-based font-type detection:
     pip install fonttools
@@ -457,10 +458,65 @@ def extract_loose_fonts(files, fonts_dir: Path, cwd: Path):
     return manifest, errors
 
 
-def build_html(manifest, zip_count: int, page_id: str) -> str:
-    """Load template.html and substitute the runtime values in via plain
-    string replacement (no str.format — the template's own CSS/JS use curly
-    braces freely, so a token-based approach avoids escaping headaches)."""
+def generate_pagination_html(current: int, total: int) -> str:
+    """Generates the HTML markup for sliding-window pagination controls."""
+    if total <= 1:
+        return ""
+
+    def get_link(p):
+        return "index.html" if p == 1 else f"index-{p}.html"
+
+    lines = ['<div class="pagination">']
+
+    # Prev Button
+    if current > 1:
+        lines.append(f'<a href="{get_link(current - 1)}" class="page-link">← Prev</a>')
+    else:
+        lines.append(f'<span class="page-link disabled">← Prev</span>')
+
+    window = 2
+    start = max(1, current - window)
+    end = min(total, current + window)
+
+    # First page and ellipsis
+    if start > 1:
+        lines.append(f'<a href="{get_link(1)}" class="page-link">1</a>')
+        if start > 2:
+            lines.append('<span class="page-ellipsis">...</span>')
+
+    # Window of pages
+    for p in range(start, end + 1):
+        if p == current:
+            lines.append(f'<span class="page-link active">{p}</span>')
+        else:
+            lines.append(f'<a href="{get_link(p)}" class="page-link">{p}</a>')
+
+    # Last page and ellipsis
+    if end < total:
+        if end < total - 1:
+            lines.append('<span class="page-ellipsis">...</span>')
+        lines.append(f'<a href="{get_link(total)}" class="page-link">{total}</a>')
+
+    # Next Button
+    if current < total:
+        lines.append(f'<a href="{get_link(current + 1)}" class="page-link">Next →</a>')
+    else:
+        lines.append(f'<span class="page-link disabled">Next →</span>')
+
+    lines.append("</div>")
+    return "\n".join(lines)
+
+
+def build_html(
+    manifest,
+    zip_count: int,
+    page_id: str,
+    total_fonts: int,
+    page_num: int,
+    total_pages: int,
+    pagination_html: str,
+) -> str:
+    """Load template.html and substitute the runtime values in via plain string replacement."""
     if not TEMPLATE_PATH.exists():
         sys.exit(
             f"Error: template.html not found next to fonter.py "
@@ -468,12 +524,14 @@ def build_html(manifest, zip_count: int, page_id: str) -> str:
         )
 
     html = TEMPLATE_PATH.read_text(encoding="utf-8")
-
     manifest_json = json.dumps(manifest, ensure_ascii=False)
 
-    html = html.replace("__COUNT__", str(len(manifest)))
+    html = html.replace("__COUNT__", str(total_fonts))
     html = html.replace("__ZIP_COUNT__", str(zip_count))
     html = html.replace("__PAGE_ID__", page_id)
+    html = html.replace("__PAGE_NUM__", str(page_num))
+    html = html.replace("__TOTAL_PAGES__", str(total_pages))
+    html = html.replace("__PAGINATION__", pagination_html)
     html = html.replace("__MANIFEST_JSON__", manifest_json)
 
     return html
@@ -508,6 +566,12 @@ def main():
         "--fonts-only",
         action="store_true",
         help="Skip zip files, only look for loose font files",
+    )
+    parser.add_argument(
+        "--page-size",
+        type=int,
+        default=50,
+        help="Number of fonts per HTML page (default: 50. Use 0 to disable pagination)",
     )
     args = parser.parse_args()
 
@@ -567,18 +631,44 @@ def main():
     raw_manifest.sort(key=lambda m: m["display_name"].lower())
     manifest = merge_duplicate_formats(raw_manifest)
 
-    html = build_html(manifest, len(zip_files), page_id)
-    index_path = out_dir / "index.html"
-    index_path.write_text(html, encoding="utf-8")
+    # Pagination logic
+    page_size = args.page_size
+    if page_size > 0 and len(manifest) > page_size:
+        chunks = [
+            manifest[i : i + page_size] for i in range(0, len(manifest), page_size)
+        ]
+    else:
+        chunks = [manifest]
 
+    total_pages = len(chunks)
+    total_fonts = len(manifest)
+
+    # Generate HTML files per chunk
+    for i, chunk in enumerate(chunks):
+        page_num = i + 1
+        filename = "index.html" if page_num == 1 else f"index-{page_num}.html"
+
+        pagination_html = generate_pagination_html(page_num, total_pages)
+        html = build_html(
+            manifest=chunk,
+            zip_count=len(zip_files),
+            page_id=page_id,
+            total_fonts=total_fonts,
+            page_num=page_num,
+            total_pages=total_pages,
+            pagination_html=pagination_html,
+        )
+
+        index_path = out_dir / filename
+        index_path.write_text(html, encoding="utf-8")
+
+    # Global manifest payload
     manifest_path = out_dir / "manifest.json"
     manifest_path.write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
-    # Small metadata sidecar so dev_server.py can rebuild index.html from
-    # template.html without re-running extraction (zip_count/page_id aren't
-    # otherwise recoverable from manifest.json alone).
+    # Small metadata sidecar for dev_server.py
     meta_path = out_dir / "meta.json"
     meta_path.write_text(
         json.dumps({"zip_count": len(zip_files), "page_id": page_id}, indent=2),
@@ -589,7 +679,14 @@ def main():
         fonts_dir_display = fonts_dir.relative_to(cwd)
     except ValueError:
         fonts_dir_display = fonts_dir
-    print(f"\nExtracted {len(manifest)} font file(s) into {fonts_dir_display}/")
+
+    if total_pages > 1:
+        print(
+            f"\nExtracted {total_fonts} font file(s) into {fonts_dir_display}/ (Split across {total_pages} pages)"
+        )
+    else:
+        print(f"\nExtracted {total_fonts} font file(s) into {fonts_dir_display}/")
+
     if errors:
         print(f"\n{len(errors)} issue(s) encountered:")
         for e in errors:
@@ -608,7 +705,7 @@ def main():
             " — add 'brotli' too if you have .woff2 files: pip install brotli)"
         )
 
-    print(f"\nDone. Open this in your browser:\n  {index_path.resolve()}")
+    print(f"\nDone. Open this in your browser:\n  {(out_dir / 'index.html').resolve()}")
 
 
 if __name__ == "__main__":
