@@ -12,23 +12,23 @@
         <style>
             :root {
                 --bg: #fff;
-                --panel: #ffffff;
+                --panel: var(--bg);
                 --ink: #1a1a1a;
                 --ink-soft: #6b6b6b;
                 --border: #dadfe2;
-                --accent: #2f65d1;
+                --accent: #0062f2;
                 --accent-ink: #ffffff;
                 --chip: #f3f6f9;
-                --radius: 10px;
+                --radius: 0;
                 --shadow: none;
             }
             [data-theme="dark"] {
                 --bg: #16161a;
-                --panel: #1f1f24;
+                --panel: var(--bg);
                 --ink: #f0efe9;
                 --ink-soft: #9a9a9f;
                 --border: #313138;
-                --accent: #2f65d1;
+                --accent: #99bbff;
                 --accent-ink: #16161a;
                 --chip: #2a2a31;
                 --shadow: none;
@@ -98,6 +98,9 @@
                 font-size: 15px;
                 margin-right: 4px;
                 white-space: nowrap;
+                display: flex;
+                align-items: center;
+                column-gap: 1rem;
             }
             .header-title span {
                 color: var(--ink-soft);
@@ -122,12 +125,12 @@
                 border-radius: 6px;
                 white-space: nowrap;
                 opacity: 0;
-                visibility: hidden; /* <-- Hide from document flow */
+                visibility: hidden;
                 pointer-events: none;
                 transition:
                     opacity 0.15s ease,
                     transform 0.15s ease,
-                    visibility 0s linear 0.15s; /* Delay hiding visibility so fade-out shows */
+                    visibility 0s linear 0.15s;
                 z-index: 200;
             }
             [data-tip]::before {
@@ -139,7 +142,7 @@
                 border: 5px solid transparent;
                 border-bottom-color: var(--ink);
                 opacity: 0;
-                visibility: hidden; /* <-- Hide from document flow */
+                visibility: hidden;
                 pointer-events: none;
                 transition:
                     opacity 0.15s ease,
@@ -149,14 +152,14 @@
             [data-tip]:hover::after,
             [data-tip]:focus-visible::after {
                 opacity: 1;
-                visibility: visible; /* <-- Make visible on hover */
+                visibility: visible;
                 transform: translateX(-50%) translateY(0);
                 transition-delay: 0s;
             }
             [data-tip]:hover::before,
             [data-tip]:focus-visible::before {
                 opacity: 1;
-                visibility: visible; /* <-- Make visible on hover */
+                visibility: visible;
                 transition-delay: 0s;
             }
             .field {
@@ -180,7 +183,6 @@
                 font-family: inherit;
             }
 
-            /* Text-only Dropdown UI */
             .dropdown-wrap {
                 position: relative;
                 display: flex;
@@ -219,7 +221,6 @@
                 max-height: 2rem;
             }
 
-            /* Better Sliders */
             .range-wrap {
                 display: flex;
                 align-items: center;
@@ -290,16 +291,18 @@
 
             button {
                 border: 1px solid var(--border);
-                background: var(--chip);
+                background: transparent;
                 color: var(--ink);
                 border-radius: 6px;
                 padding: 7px 12px;
                 font-size: 12px;
                 cursor: pointer;
                 font-family: inherit;
+                transition: background-color 150ms ease-in;
             }
             button:hover {
                 filter: brightness(0.95);
+                background: var(--chip);
             }
             [data-theme="dark"] button:hover {
                 filter: brightness(1.15);
@@ -310,7 +313,6 @@
                 border-color: var(--accent);
             }
 
-            /* Better Switcher Pills */
             .pill-toggles {
                 display: flex;
                 align-items: center;
@@ -355,7 +357,6 @@
                 box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
             }
 
-            /* Reset All Button */
             .reset-btn {
                 background: transparent;
                 border: 1px solid var(--border);
@@ -379,7 +380,6 @@
                 filter: none;
             }
 
-            /* Color Theme Circle Switchers */
             .theme-circles {
                 display: flex;
                 gap: 8px;
@@ -396,7 +396,7 @@
                     var(--c1) 50%,
                     var(--c2) 50%
                 );
-                background-clip: padding-box; /* Fixes the square gradient bleeding */
+                background-clip: padding-box;
                 cursor: pointer;
                 padding: 0;
                 box-shadow: 0 0 0 1px var(--border);
@@ -404,11 +404,18 @@
                     transform 0.2s ease,
                     box-shadow 0.2s ease,
                     border-color 0.2s ease;
-                -webkit-appearance: none; /* Resets default button styling */
+                -webkit-appearance: none;
                 appearance: none;
                 outline: none;
             }
             .theme-circle:hover {
+                background: linear-gradient(
+                    135deg,
+                    var(--c1) 50%,
+                    var(--c2) 50%
+                );
+                border-color: var(--bg);
+                box-shadow: 0 0 0 2px var(--ink);
                 transform: scale(1.1);
             }
             .theme-circle.active {
@@ -417,7 +424,6 @@
                 transform: scale(1.1);
             }
 
-            /* Light mode circle colors (default) */
             .theme-circle[data-value="default"] {
                 --c1: #ffffff;
                 --c2: #1a1a1a;
@@ -439,7 +445,6 @@
                 --c2: #8b3fd1;
             }
 
-            /* Dark mode circle colors */
             [data-theme="dark"] .theme-circle[data-value="default"] {
                 --c1: #16161a;
                 --c2: #f0efe9;
@@ -483,21 +488,21 @@
             #grid {
                 display: grid;
                 grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-                gap: 16px;
+                column-gap: 32px;
             }
             #grid.list-view {
                 grid-template-columns: 1fr;
             }
             .card {
                 background: var(--panel);
-                border: 1px solid var(--border);
+                border-bottom: 1px solid var(--border);
                 border-radius: var(--radius);
-                padding: 16px 18px;
+                padding: 32px 0;
                 box-shadow: var(--shadow);
                 display: flex;
                 flex-direction: column;
                 gap: 10px;
-                min-width: 0; /* Prevents overflow expanding beyond container */
+                min-width: 0;
             }
             .card-meta {
                 display: flex;
@@ -507,6 +512,16 @@
             }
             .card-name-wrap {
                 min-width: 0;
+            }
+            .list-view .card-name-wrap {
+                display: flex;
+                align-items: center;
+            }
+            .list-view .card-name-wrap .card-sub {
+                margin-left: 0.25rem;
+            }
+            .list-view .card-name-wrap .card-sub::before {
+                content: " — ";
             }
             .card-name {
                 font-size: 13px;
@@ -546,7 +561,7 @@
                 word-wrap: break-word;
                 line-height: 1.25;
                 min-height: 1.4em;
-                min-width: 0; /* Prevents long string blowout */
+                min-width: 0;
             }
             .specimen.nowrap {
                 white-space: nowrap;
@@ -638,9 +653,10 @@
             }
             .focus-label {
                 font-size: 13px;
-                color: var(--ink-soft);
+                color: var(--ink);
                 text-transform: uppercase;
                 letter-spacing: 0.05em;
+                font-weight: bold;
             }
             .focus-text {
                 font-size: clamp(40px, 8vw, 140px);
@@ -658,7 +674,6 @@
                 padding-top: 2rem;
                 border-top: 1px solid var(--border);
                 width: 100%;
-                max-width: 600px;
             }
             .focus-text:empty::before {
                 content: "Type something…";
@@ -666,7 +681,7 @@
             }
             [data-preset="sunset"] {
                 --bg: #fff5f0;
-                --panel: #ffffff;
+                --panel: var(--bg);
                 --ink: #3a1f1a;
                 --ink-soft: #8a6656;
                 --border: #f0d9cd;
@@ -676,7 +691,7 @@
             }
             [data-preset="sunset"][data-theme="dark"] {
                 --bg: #1f1310;
-                --panel: #2b1a15;
+                --panel: var(--bg);
                 --ink: #ffe8df;
                 --ink-soft: #c99a89;
                 --border: #4a2e24;
@@ -686,7 +701,7 @@
             }
             [data-preset="ocean"] {
                 --bg: #f0f7fa;
-                --panel: #ffffff;
+                --panel: var(--bg);
                 --ink: #102b33;
                 --ink-soft: #5c7d87;
                 --border: #d3e6ec;
@@ -696,7 +711,7 @@
             }
             [data-preset="ocean"][data-theme="dark"] {
                 --bg: #0b1a1f;
-                --panel: #122731;
+                --panel: var(--bg);
                 --ink: #dff3f7;
                 --ink-soft: #7fa3ad;
                 --border: #1f3b44;
@@ -706,7 +721,7 @@
             }
             [data-preset="forest"] {
                 --bg: #f2f8ee;
-                --panel: #ffffff;
+                --panel: var(--bg);
                 --ink: #1c3312;
                 --ink-soft: #5f7a51;
                 --border: #dcebd2;
@@ -716,7 +731,7 @@
             }
             [data-preset="forest"][data-theme="dark"] {
                 --bg: #0f180b;
-                --panel: #182813;
+                --panel: var(--bg);
                 --ink: #e4f2da;
                 --ink-soft: #8fae7c;
                 --border: #253d1c;
@@ -726,7 +741,7 @@
             }
             [data-preset="grape"] {
                 --bg: #f7f1fb;
-                --panel: #ffffff;
+                --panel: var(--bg);
                 --ink: #2c1638;
                 --ink-soft: #7c6389;
                 --border: #e6d7ef;
@@ -736,7 +751,7 @@
             }
             [data-preset="grape"][data-theme="dark"] {
                 --bg: #150c1c;
-                --panel: #221430;
+                --panel: var(--bg);
                 --ink: #efe1f7;
                 --ink-soft: #a68bb8;
                 --border: #3a2650;
@@ -778,14 +793,39 @@
                     <div class="dropdown-wrap">
                         <svg
                             class="dropdown-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
                             viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
                         >
-                            <polyline points="6 9 12 15 18 9"></polyline>
+                            <g
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <path
+                                    d="M9.5 14C11.1569 14 12.5 15.3431 12.5 17C12.5 18.6568 11.1569 20 9.5 20C7.84315 20 6.5 18.6568 6.5 17C6.5 15.3431 7.84315 14 9.5 14Z"
+                                />
+                                <path
+                                    d="M14.5 3.99998C12.8431 3.99998 11.5 5.34312 11.5 6.99998C11.5 8.65683 12.8431 9.99998 14.5 9.99998C16.1569 9.99998 17.5 8.65683 17.5 6.99998C17.5 5.34312 16.1569 3.99998 14.5 3.99998Z"
+                                />
+                                <path
+                                    stroke-linecap="round"
+                                    d="M15 16.9585L22 16.9585"
+                                />
+                                <path
+                                    stroke-linecap="round"
+                                    d="M9 6.9585L2 6.9585"
+                                />
+                                <path
+                                    stroke-linecap="round"
+                                    d="M2 16.9585L4 16.9585"
+                                />
+                                <path
+                                    stroke-linecap="round"
+                                    d="M22 6.9585L20 6.9585"
+                                />
+                            </g>
                         </svg>
                         <select id="presetSelect" class="text-select">
                             <option value="">Custom…</option>
@@ -917,14 +957,39 @@
                     <div class="dropdown-wrap">
                         <svg
                             class="dropdown-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
                             viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
                         >
-                            <polyline points="6 9 12 15 18 9"></polyline>
+                            <g
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <path
+                                    d="M9.5 14C11.1569 14 12.5 15.3431 12.5 17C12.5 18.6568 11.1569 20 9.5 20C7.84315 20 6.5 18.6568 6.5 17C6.5 15.3431 7.84315 14 9.5 14Z"
+                                />
+                                <path
+                                    d="M14.5 3.99998C12.8431 3.99998 11.5 5.34312 11.5 6.99998C11.5 8.65683 12.8431 9.99998 14.5 9.99998C16.1569 9.99998 17.5 8.65683 17.5 6.99998C17.5 5.34312 16.1569 3.99998 14.5 3.99998Z"
+                                />
+                                <path
+                                    stroke-linecap="round"
+                                    d="M15 16.9585L22 16.9585"
+                                />
+                                <path
+                                    stroke-linecap="round"
+                                    d="M9 6.9585L2 6.9585"
+                                />
+                                <path
+                                    stroke-linecap="round"
+                                    d="M2 16.9585L4 16.9585"
+                                />
+                                <path
+                                    stroke-linecap="round"
+                                    d="M22 6.9585L20 6.9585"
+                                />
+                            </g>
                         </svg>
                         <select id="formatSelect" class="text-select">
                             <option value="auto">Auto</option>
@@ -941,14 +1006,39 @@
                     <div class="dropdown-wrap">
                         <svg
                             class="dropdown-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
                             viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
                         >
-                            <polyline points="6 9 12 15 18 9"></polyline>
+                            <g
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <path
+                                    d="M9.5 14C11.1569 14 12.5 15.3431 12.5 17C12.5 18.6568 11.1569 20 9.5 20C7.84315 20 6.5 18.6568 6.5 17C6.5 15.3431 7.84315 14 9.5 14Z"
+                                />
+                                <path
+                                    d="M14.5 3.99998C12.8431 3.99998 11.5 5.34312 11.5 6.99998C11.5 8.65683 12.8431 9.99998 14.5 9.99998C16.1569 9.99998 17.5 8.65683 17.5 6.99998C17.5 5.34312 16.1569 3.99998 14.5 3.99998Z"
+                                />
+                                <path
+                                    stroke-linecap="round"
+                                    d="M15 16.9585L22 16.9585"
+                                />
+                                <path
+                                    stroke-linecap="round"
+                                    d="M9 6.9585L2 6.9585"
+                                />
+                                <path
+                                    stroke-linecap="round"
+                                    d="M2 16.9585L4 16.9585"
+                                />
+                                <path
+                                    stroke-linecap="round"
+                                    d="M22 6.9585L20 6.9585"
+                                />
+                            </g>
                         </svg>
                         <select id="sortSelect" class="text-select">
                             <option value="name">Name A–Z</option>
