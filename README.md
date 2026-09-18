@@ -1,13 +1,13 @@
 # Fonter
 
-Automatically finds and extracts font files (.ttf, .otf, .woff, .woff2) from your folders or .zip archives, and generating a fast, single-page HTML preview of your entire collection at once.
+Automatically finds and extracts font files (`.ttf`, `.otf`, `.woff`, `.woff2`) from your folders or `.zip` archives, generating a fast, single-page HTML preview of your entire collection at once.
 
 <img src="./thumbnail.png" alt="thumbnail" />
 
 ## Features
 * **Deep Zip Scanning:** Automatically digs through zip archives to extract font files.
-* **Loose Font Support:** Can scan for already-unzipped font files sitting directly on current folder.
-* **Sub-folder Scanning**: Scans through all sub-folders by default to find nested font files.
+* **Recursive Folder Scanning:** Searches through your current directory and up to 4 levels of sub-folders by default to find nested, loose font files.
+* **Type Classification:** Automatically tags fonts (serif, sans-serif, monospace, script, display) so you can filter your preview. It reads raw OS/2 and PANOSE metadata directly from the font files (requires `fonttools`). May not work all the time.
 * **Smart Organization:** Merges duplicate formats (e.g., `Roboto-Bold.otf` and `Roboto-Bold.ttf`) into a single preview card with a `formats` list.
 * **Intelligent Weight/Style Detection:** Parses filenames to automatically guess font weights and italic styles.
 * **Self-Contained Output:** Generates a portable `index.html` file alongside a `fonts/` folder and `manifest.json`.
@@ -25,11 +25,16 @@ To run `fonter` from anywhere on your system as a global command, create a symbo
    git clone [https://github.com/ricafolio/fonter.git](https://github.com/ricafolio/fonter.git)
    cd fonter
    ```
-2. **Make the script executable:**
+2. **Install optional dependencies (Highly Recommended):**
+   For accurate font classification, install `fonttools` (to read font metadata) and `brotli` (to parse `.woff2` files). *Note: If you skip this, Fonter will still work perfectly, but it will have to guess the font type (serif/sans/etc.) using just the filename.*
+   ```bash
+   pip3 install fonttools brotli
+   ```
+3. **Make the scripts executable:**
    ```bash
    chmod +x fonter.py dev_server.py
    ```
-3. **Create a symbolic link** in your bin folder:
+4. **Create a symbolic link** in your bin folder:
    ```bash
    ln -s "$(pwd)/fonter.py" ~/bin/fonter
    ```
@@ -37,14 +42,21 @@ To run `fonter` from anywhere on your system as a global command, create a symbo
 
 ## Usage
 
-Navigate to any directory containing `.zip` files (or folders of zip files) with fonts, and execute the command. This will create a `fonter-preview/` directory containing your extracted fonts and an `index.html` preview file, and automatically prompt you to open it.
+Navigate to any directory containing `.zip` files or loose fonts, and execute the command. This will create a `fonter-preview/` directory containing your extracted fonts and an `index.html` preview file, and automatically prompt you to open it.
+
+```bash
+fonter
+```
 
 ### Command-Line Options
 
 | Flag | Description | Default |
 | :--- | :--- | :--- |
 | `--output <path>` | Custom output folder name or absolute path. | `fonter-preview` |
-| `--no-recurse-dirs` | Only look for `.zip` files directly in the current folder, ignoring subfolders. | `false` |
+| `--max-depth <int>` | How many levels of subfolders to search. | `4` |
+| `--no-recurse-dirs` | Only look for files directly in the current folder (forces max-depth to 0). | `false` |
+| `--folders-only` | Skip files sitting directly in the current folder (only look in subfolders). | `false` |
+| `--fonts-only` | Skip `.zip` files entirely, only look for loose font files. | `false` |
 
 ## Add fonter to macOS Quick Action (Right-Click Menu)
 
@@ -59,7 +71,7 @@ You can add `fonter` to your Mac's right-click menu so you can generate a previe
 5. Paste the following code into the script box, completely replacing the default code:
 
    ```bash
-   # Fix Automator's limited $PATH so it can find Python and your global fonter command
+   # Fix Automator's limited $PATH so it can find Python, your global fonter command, and pip installs
    export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/bin:$PATH"
 
    TARGET="$1"
