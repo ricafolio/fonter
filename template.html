@@ -1142,6 +1142,38 @@
                 </div>
 
                 <div class="field">
+                    <label for="fontTypeSelect">Font Type</label>
+                    <div class="dropdown-wrap">
+                        <svg
+                            class="dropdown-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M4 5H20L14 13V19L10 21V13L4 5Z"
+                            />
+                        </svg>
+                        <select id="fontTypeSelect" class="text-select">
+                            <option value="all">All</option>
+                            <option value="sans-serif">Sans-serif</option>
+                            <option value="serif">Serif</option>
+                            <option value="monospace">Monospace</option>
+                            <option value="script">Script</option>
+                            <option value="display">Display</option>
+                            <option value="symbol">Symbol</option>
+                            <option value="unknown">Unknown</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="field">
                     <label>Color Theme</label>
                     <div class="theme-circles" id="themeCircleContainer">
                         <button
@@ -1516,6 +1548,7 @@
             const searchBoxEl = document.getElementById("searchBox");
             const formatSelectEl = document.getElementById("formatSelect");
             const sortSelectEl = document.getElementById("sortSelect");
+            const fontTypeSelectEl = document.getElementById("fontTypeSelect");
             const presetSelectEl = document.getElementById("presetSelect");
             const boldToggleEl = document.getElementById("boldToggle");
             const italicToggleEl = document.getElementById("italicToggle");
@@ -1721,6 +1754,9 @@
                     `<span class="badge">${f.weight}</span>` +
                     (f.style === "italic"
                         ? '<span class="badge">italic</span>'
+                        : "") +
+                    (f.font_type
+                        ? `<span class="badge" title="Font type${f.font_type_source === "name-guess" ? " (guessed from filename, not font metadata)" : f.font_type_source === "unknown" ? " could not be determined" : ""}">${f.font_type}${f.font_type_source === "name-guess" ? "?" : ""}</span>`
                         : "");
 
                 meta.appendChild(nameWrap);
@@ -1821,6 +1857,7 @@
 
             function render() {
                 const query = searchBoxEl.value.trim().toLowerCase();
+                const typeFilter = fontTypeSelectEl.value;
                 let list = FONTS.filter((f) => {
                     const isHidden = hiddenFonts.has(f.id);
                     if (hiddenOnly) {
@@ -1829,6 +1866,11 @@
                         if (isHidden) return false;
                     }
                     if (pinnedOnly && !pinned.has(f.id)) return false;
+                    if (
+                        typeFilter !== "all" &&
+                        (f.font_type || "unknown") !== typeFilter
+                    )
+                        return false;
                     if (!query) return true;
                     return (
                         f.display_name.toLowerCase().includes(query) ||
@@ -1931,6 +1973,7 @@
                 render();
             });
             sortSelectEl.addEventListener("change", render);
+            fontTypeSelectEl.addEventListener("change", render);
             presetSelectEl.addEventListener("change", () => {
                 const val = presetSelectEl.value;
                 if (val && val !== "name" && PRESETS[val])
@@ -1996,6 +2039,7 @@
                 searchBoxEl.value = "";
                 formatSelectEl.value = "auto";
                 sortSelectEl.value = "name";
+                fontTypeSelectEl.value = "all";
 
                 fontSizeEl.value = 32;
                 letterSpacingEl.value = 0;

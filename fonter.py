@@ -11,11 +11,25 @@ The HTML page itself lives in template.html (next to this script) and is
 loaded + token-substituted at runtime, so you can edit the design/markup
 there without touching any Python string escaping.
 
+Each font is also tagged with a best-effort classification (sans-serif,
+serif, monospace, script, display, symbol) so the preview page can filter
+by type. This is read from the font's own OS/2 (sFamilyClass, PANOSE) and
+post (isFixedPitch) tables when the optional `fontTools` package is
+installed, falling back to a keyword guess on the font's family name
+otherwise. Many free/open-source/amateur fonts leave sFamilyClass and
+PANOSE blank, so this is a strong hint, not a guarantee — see
+detect_font_type() below.
+
 Usage:
     python3 fonter.py
     python3 fonter.py --output my-preview --no-recurse-dirs
 
-Requires only the Python standard library.
+Optional dependency for metadata-based font-type detection:
+    pip install fonttools
+    pip install brotli   # also needed to read .woff2 metadata
+
+Without fontTools installed, everything else still works exactly the
+same — font-type detection just falls back to guessing from filenames.
 """
 
 import argparse
@@ -24,7 +38,15 @@ import json
 import re
 import sys
 import zipfile
+from collections import Counter
 from pathlib import Path
+
+try:
+    from fontTools.ttLib import TTFont
+
+    HAVE_FONTTOOLS = True
+except ImportError:
+    HAVE_FONTTOOLS = False
 
 FONT_EXTS = {".ttf", ".otf", ".woff", ".woff2"}
 
@@ -54,6 +76,26 @@ WEIGHT_TOKENS = [
     ("black", 900),
 ]
 
+# sFamilyClass high byte -> our font-type buckets. See the OpenType OS/2
+# spec's "IBM font class" table for the full list of class IDs.
+FAMILY_CLASS_MAP = {
+    1: "serif",  # Oldstyle Serifs
+    2: "serif",  # Transitional Serifs
+    3: "serif",  # Modern Serifs
+    4: "serif",  # Clarendon Serifs
+    5: "serif",  # Slab Serifs
+    7: "serif",  # Freeform Serifs
+    8: "sans-serif",
+    9: "display",  # Ornamentals
+    10: "script",
+    12: "symbol",
+}
+
+# PANOSE bSerifStyle values 11-13 are the three "sans" styles; 2-10/14/15
+# are various serif styles; 0/1 mean "Any"/"No Fit" (unclassified).
+PANOSE_SANS_SERIF_STYLES = {11, 12, 13}
+PANOSE_UNCLASSIFIED_SERIF_STYLES = {0, 1}
+
 # Path to the external HTML template, next to this script.
 TEMPLATE_PATH = Path(__file__).resolve().parent / "template.html"
 
@@ -82,6 +124,85 @@ def guess_weight_style(stem: str):
     return weight, style
 
 
+def guess_font_type_from_name(display_name: str) -> str:
+    """Fallback classification when there's no usable OS/2/PANOSE data:
+    a keyword match against the font's own family name."""
+    name = display_name.lower()
+    if any(t in name for t in ("mono", "code", "console", "typewriter", "terminal")):
+        return "monospace"
+    if any(t in name for t in ("script", "hand", "brush", "calli", "signature")):
+        return "script"
+    if any(t in name for t in ("display", "deco", "poster", "headline")):
+        return "display"
+    if "sans" in name:
+        return "sans-serif"
+    if any(
+        t in name for t in ("serif", "slab", "roman", "times", "georgia", "garamond")
+    ):
+        return "serif"
+    return "unknown"
+
+
+def detect_font_type(path: Path, display_name: str):
+    """Best-effort font classification. Returns (font_type, source) where
+    source is:
+      - "metadata"   read from the font's own OS/2/PANOSE/post tables
+      - "name-guess" fell back to keyword-matching the family name
+      - "unknown"    neither approach found anything
+
+    fontTools is optional; without it (or if the font fails to parse —
+    e.g. a .woff2 with no 'brotli' package installed) this always falls
+    back to the name guess."""
+    result = None
+
+    if HAVE_FONTTOOLS:
+        try:
+            font = TTFont(str(path), lazy=True, fontNumber=0)
+            try:
+                try:
+                    post = font["post"]
+                    if getattr(post, "isFixedPitch", 0):
+                        result = "monospace"
+                except Exception:
+                    pass
+
+                if result is None and "OS/2" in font:
+                    os2 = font["OS/2"]
+
+                    family_class = getattr(os2, "sFamilyClass", 0) or 0
+                    class_id = (family_class >> 8) & 0xFF
+                    result = FAMILY_CLASS_MAP.get(class_id)
+
+                    if result is None:
+                        panose = getattr(os2, "panose", None)
+                        if panose is not None:
+                            family_type = getattr(panose, "bFamilyType", 0)
+                            serif_style = getattr(panose, "bSerifStyle", 0)
+                            if family_type == 3:  # Latin Script
+                                result = "script"
+                            elif family_type == 4:  # Latin Decorative
+                                result = "display"
+                            elif family_type == 2:  # Latin Text
+                                if serif_style in PANOSE_SANS_SERIF_STYLES:
+                                    result = "sans-serif"
+                                elif (
+                                    serif_style not in PANOSE_UNCLASSIFIED_SERIF_STYLES
+                                ):
+                                    result = "serif"
+            finally:
+                font.close()
+        except Exception:
+            result = None  # corrupt/unsupported font, e.g. woff2 w/o brotli
+
+    if result:
+        return result, "metadata"
+
+    guess = guess_font_type_from_name(display_name)
+    if guess != "unknown":
+        return guess, "name-guess"
+    return "unknown", "unknown"
+
+
 def generate_stable_id(name: str, weight: int, style: str) -> str:
     """Creates a stable slug based on font identity rather than sequential order."""
     slug = re.sub(r"[^a-zA-Z0-9]+", "_", name.lower()).strip("_")
@@ -100,6 +221,19 @@ def unique_dest_path(dest_dir: Path, filename: str) -> Path:
         if not candidate.exists():
             return candidate
         n += 1
+
+
+def _best_font_type(group):
+    """When the same font ships in multiple file formats, different files
+    can yield different confidence levels (e.g. a .woff2 that fails to
+    parse without 'brotli' falls back to a name guess while its .ttf
+    sibling reads real OS/2 metadata) — prefer the most reliable result
+    found across the group."""
+    for source_pref in ("metadata", "name-guess", "unknown"):
+        for g in group:
+            if g.get("font_type_source") == source_pref:
+                return g.get("font_type", "unknown"), source_pref
+    return "unknown", "unknown"
 
 
 def merge_duplicate_formats(entries):
@@ -131,6 +265,8 @@ def merge_duplicate_formats(entries):
             for g in group
         ]
 
+        font_type, font_type_source = _best_font_type(group)
+
         merged.append(
             {
                 "id": primary["family"],  # Use the stable string as the JS identifier
@@ -141,6 +277,8 @@ def merge_duplicate_formats(entries):
                 "source_zip": primary["source_zip"],
                 "size_kb": primary["size_kb"],
                 "formats": formats,
+                "font_type": font_type,
+                "font_type_source": font_type_source,
             }
         )
     return merged
@@ -157,6 +295,7 @@ def build_manifest_entry(
     display_name = clean_display_name(orig_stem)
     weight, style = guess_weight_style(orig_stem)
     stable_id = generate_stable_id(display_name, weight, style)
+    font_type, font_type_source = detect_font_type(dest_path, display_name)
 
     return {
         "family": stable_id,
@@ -169,6 +308,8 @@ def build_manifest_entry(
         "source_zip": source_zip,
         "source_path": source_path,
         "size_kb": round(data_len / 1024, 1),
+        "font_type": font_type,
+        "font_type_source": font_type_source,
     }
 
 
@@ -404,6 +545,19 @@ def main():
         print(f"\n{len(errors)} issue(s) encountered:")
         for e in errors:
             print(f"  ! {e}")
+
+    type_counts = Counter(m.get("font_type_source", "unknown") for m in manifest)
+    print(
+        f"\nFont type detection: {type_counts.get('metadata', 0)} from font metadata, "
+        f"{type_counts.get('name-guess', 0)} guessed from filename, "
+        f"{type_counts.get('unknown', 0)} unknown."
+    )
+    if not HAVE_FONTTOOLS:
+        print(
+            "(fontTools isn't installed, so detection relied only on filename "
+            "guessing. For metadata-based detection: pip install fonttools\n"
+            " — add 'brotli' too if you have .woff2 files: pip install brotli)"
+        )
 
     print(f"\nDone. Open this in your browser:\n  {index_path.resolve()}")
 

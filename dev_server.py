@@ -90,6 +90,8 @@ DEMO_MANIFEST = [
         "style": "normal",
         "source_zip": "(demo)",
         "size_kb": 12.3,
+        "font_type": "sans-serif",
+        "font_type_source": "metadata",
         "formats": [
             {
                 "file": "demo-sans-regular.woff2",
@@ -109,6 +111,8 @@ DEMO_MANIFEST = [
         "style": "normal",
         "source_zip": "(demo)",
         "size_kb": 13.1,
+        "font_type": "sans-serif",
+        "font_type_source": "metadata",
         "formats": [
             {
                 "file": "demo-sans-bold.woff2",
@@ -128,6 +132,8 @@ DEMO_MANIFEST = [
         "style": "italic",
         "source_zip": "(demo)",
         "size_kb": 15.7,
+        "font_type": "serif",
+        "font_type_source": "name-guess",
         "formats": [
             {
                 "file": "demo-serif-italic.otf",
@@ -147,6 +153,8 @@ DEMO_MANIFEST = [
         "style": "normal",
         "source_zip": "(demo)",
         "size_kb": 9.4,
+        "font_type": "monospace",
+        "font_type_source": "metadata",
         "formats": [
             {
                 "file": "demo-mono-medium.ttf",
