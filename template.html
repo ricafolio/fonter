@@ -1577,6 +1577,7 @@
             const THEME_KEY = `fontPreview.theme`;
             const COLOR_PRESET_KEY = `fontPreview.colorPreset`;
             const HEADER_COLLAPSE_KEY = "fontPreview.headerCollapsed";
+            const SETTINGS_KEY = "fontPreview.settings"; // New key for UI controls
 
             const FONTS = __MANIFEST_JSON__;
             const TOTAL_FONTS = parseInt("__COUNT__", 10) || FONTS.length;
@@ -1614,14 +1615,7 @@
                                 `url("fonts/${encodeURIComponent(fmt.file)}") format("${fmt.format}")`,
                         )
                         .join(",\n       ");
-                    return `
-@font-face {
-  font-family: "${f.family}";
-  src: ${srcList};
-  font-weight: ${f.weight};
-  font-style: ${f.style};
-  font-display: swap;
-}`;
+                    return `@font-face {\n  font-family: "${f.family}";\n  src: ${srcList};\n  font-weight: ${f.weight};\n  font-style: ${f.style};\n  font-display: swap;\n}`;
                 }).join("\n");
             }
 
@@ -1665,25 +1659,83 @@
             const headerSubtitleEl = document.getElementById("headerSubtitle");
             const themeCircles = document.querySelectorAll(".theme-circle");
 
+            // --- LOAD SAVED SETTINGS ---
+            const defaultSettings = {
+                sampleText:
+                    "The quick brown fox jumps over the lazy dog — 0123456789",
+                presetSelect: "",
+                fontSize: "32",
+                letterSpacing: "0",
+                lineHeight: "125",
+                searchBox: "",
+                formatSelect: "auto",
+                sortSelect: "name",
+                fontTypeSelect: "all",
+                forceBold: false,
+                forceItalic: false,
+                forceUppercase: false,
+                colorizeText: false,
+                pinnedOnly: false,
+                hiddenOnly: false,
+                listView: false,
+                nowrapMode: false,
+            };
+
+            let settings = JSON.parse(
+                localStorage.getItem(SETTINGS_KEY) || "{}",
+            );
+            settings = { ...defaultSettings, ...settings };
+
+            function saveSettings() {
+                localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+            }
+
             let pinned = new Set(
                 JSON.parse(localStorage.getItem(PIN_KEY) || "[]"),
             );
             let hiddenFonts = new Set(
                 JSON.parse(localStorage.getItem(HIDDEN_KEY) || "[]"),
             );
-            let forceBold = false;
-            let forceItalic = false;
-            let forceUppercase = false;
-            let colorizeText = false;
-            let pinnedOnly = false;
-            let hiddenOnly = false;
-            let listView = false;
-            let nowrapMode = false;
-            let formatPreference = "auto";
-
-            // Default to NOT collapsed (if null/undefined, evaluates to false)
             let headerCollapsed =
                 localStorage.getItem(HEADER_COLLAPSE_KEY) === "1";
+
+            let forceBold = settings.forceBold;
+            let forceItalic = settings.forceItalic;
+            let forceUppercase = settings.forceUppercase;
+            let colorizeText = settings.colorizeText;
+            let pinnedOnly = settings.pinnedOnly;
+            let hiddenOnly = settings.hiddenOnly;
+            let listView = settings.listView;
+            let nowrapMode = settings.nowrapMode;
+            let formatPreference = settings.formatSelect;
+
+            // --- APPLY SETTINGS TO DOM ---
+            sampleTextEl.value = settings.sampleText;
+            presetSelectEl.value = settings.presetSelect;
+            fontSizeEl.value = settings.fontSize;
+            document.getElementById("fontSizeVal").textContent =
+                settings.fontSize + "px";
+            letterSpacingEl.value = settings.letterSpacing;
+            document.getElementById("letterSpacingVal").textContent =
+                settings.letterSpacing + "px";
+            lineHeightEl.value = settings.lineHeight;
+            document.getElementById("lineHeightVal").textContent = (
+                settings.lineHeight / 100
+            ).toFixed(2);
+            searchBoxEl.value = settings.searchBox;
+            formatSelectEl.value = settings.formatSelect;
+            sortSelectEl.value = settings.sortSelect;
+            fontTypeSelectEl.value = settings.fontTypeSelect;
+
+            boldToggleEl.classList.toggle("active", forceBold);
+            italicToggleEl.classList.toggle("active", forceItalic);
+            uppercaseToggleEl.classList.toggle("active", forceUppercase);
+            colorToggleEl.classList.toggle("active", colorizeText);
+            pinnedOnlyEl.classList.toggle("active", pinnedOnly);
+            hiddenOnlyEl.classList.toggle("active", hiddenOnly);
+            viewToggleEl.classList.toggle("active", listView);
+            grid.classList.toggle("list-view", listView);
+            wrapToggleEl.classList.toggle("active", nowrapMode);
 
             if (TOTAL_PAGES > 1) {
                 headerSubtitleEl.textContent = `Page ${PAGE_NUM} of ${TOTAL_PAGES} (${TOTAL_FONTS} fonts total)`;
@@ -1696,7 +1748,6 @@
             function savePinned() {
                 localStorage.setItem(PIN_KEY, JSON.stringify([...pinned]));
             }
-
             function saveHidden() {
                 localStorage.setItem(
                     HIDDEN_KEY,
@@ -1775,11 +1826,8 @@
 
                 updateFocusPinBtn(f);
                 focusPinBtn.onclick = () => {
-                    if (pinned.has(f.id)) {
-                        pinned.delete(f.id);
-                    } else {
-                        pinned.add(f.id);
-                    }
+                    if (pinned.has(f.id)) pinned.delete(f.id);
+                    else pinned.add(f.id);
                     savePinned();
                     updateFocusPinBtn(f);
                 };
@@ -1798,6 +1846,9 @@
                 };
 
                 grid.style.display = "none";
+                document.querySelector(".pagination") &&
+                    (document.querySelector(".pagination").style.display =
+                        "none");
                 emptyState.style.display = "none";
                 focusModeEl.classList.add("active");
                 window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1808,6 +1859,8 @@
             function exitFocus() {
                 focusModeEl.classList.remove("active");
                 grid.style.display = "";
+                document.querySelector(".pagination") &&
+                    (document.querySelector(".pagination").style.display = "");
                 render();
             }
 
@@ -1816,14 +1869,11 @@
             function buildCard(f) {
                 const formats = orderedFormats(f, formatPreference);
                 const active = formats[0];
-
                 const card = document.createElement("div");
                 card.className = "card";
                 card.dataset.id = f.id;
-
                 const meta = document.createElement("div");
                 meta.className = "card-meta";
-
                 const nameWrap = document.createElement("div");
                 nameWrap.className = "card-name-wrap";
                 const nameEl = document.createElement("div");
@@ -1841,29 +1891,18 @@
                 subEl.title = subEl.textContent;
                 nameWrap.appendChild(nameEl);
                 nameWrap.appendChild(subEl);
-
                 const badges = document.createElement("div");
                 badges.className = "badges";
 
-                // Collect all badge HTML strings into an array first
                 const badgeElements = [];
-
-                // 1. Format badges
                 formats.forEach((fmt) => {
                     badgeElements.push(
                         `<span class="badge${fmt === active ? " badge-active" : ""}">${fmt.ext}</span>`,
                     );
                 });
-
-                // 2. Weight badge
                 badgeElements.push(`<span class="badge">${f.weight}</span>`);
-
-                // 3. Style badge (if italic)
-                if (f.style === "italic") {
+                if (f.style === "italic")
                     badgeElements.push('<span class="badge">italic</span>');
-                }
-
-                // 4. Type classification badge
                 if (f.font_type) {
                     const titleStr =
                         f.font_type_source === "name-guess"
@@ -1871,40 +1910,27 @@
                             : f.font_type_source === "unknown"
                               ? "Font type could not be determined"
                               : "Font type";
-                    const qMark = f.font_type_source === "name-guess" ? "" : "";
                     badgeElements.push(
-                        `<span class="badge" title="${titleStr}">${f.font_type}${qMark}</span>`,
+                        `<span class="badge" title="${titleStr}">${f.font_type}</span>`,
                     );
                 }
 
-                // If we have more than 3 badges, move extras into a mini modal
                 if (badgeElements.length > 3) {
                     const visibleBadges = badgeElements.slice(0, 3).join("");
                     const hiddenBadges = badgeElements.slice(3).join("");
-
-                    // tabindex="0" ensures mobile devices can tap to trigger :focus-within
                     badges.innerHTML =
                         visibleBadges +
-                        `
-                                        <div class="badge-dropdown-wrap" tabindex="0">
-                                            <span class="badge badge-more" title="Show all labels">...</span>
-                                            <div class="badge-dropdown">
-                                                ${hiddenBadges}
-                                            </div>
-                                        </div>
-                                    `;
+                        `<div class="badge-dropdown-wrap" tabindex="0"><span class="badge badge-more" title="Show all labels">...</span><div class="badge-dropdown">${hiddenBadges}</div></div>`;
                 } else {
                     badges.innerHTML = badgeElements.join("");
                 }
 
                 meta.appendChild(nameWrap);
                 meta.appendChild(badges);
-
                 const specimen = document.createElement("div");
                 specimen.className = "specimen" + (nowrapMode ? " nowrap" : "");
                 specimen.style.fontFamily = `"${f.family}"`;
                 specimen.textContent = currentSampleText(f.display_name);
-
                 const actions = document.createElement("div");
                 actions.className = "card-actions";
                 const pinBtn = document.createElement("button");
@@ -1912,11 +1938,8 @@
                     "pin-btn" + (pinned.has(f.id) ? " pinned" : "");
                 pinBtn.textContent = pinned.has(f.id) ? "★ Pinned" : "☆ Pin";
                 pinBtn.onclick = () => {
-                    if (pinned.has(f.id)) {
-                        pinned.delete(f.id);
-                    } else {
-                        pinned.add(f.id);
-                    }
+                    if (pinned.has(f.id)) pinned.delete(f.id);
+                    else pinned.add(f.id);
                     savePinned();
                     render();
                 };
@@ -1936,7 +1959,6 @@
                 };
                 actions.appendChild(pinBtn);
                 actions.appendChild(faceBtn);
-
                 const hideBtn = document.createElement("button");
                 const isHidden = hiddenFonts.has(f.id);
                 hideBtn.textContent = isHidden ? "Unhide" : "Hide";
@@ -1944,22 +1966,17 @@
                     ? "Bring this font back to the list"
                     : "🙈 Hide this font from the list";
                 hideBtn.onclick = () => {
-                    if (isHidden) {
-                        hiddenFonts.delete(f.id);
-                    } else {
-                        hiddenFonts.add(f.id);
-                    }
+                    if (isHidden) hiddenFonts.delete(f.id);
+                    else hiddenFonts.add(f.id);
                     saveHidden();
                     render();
                 };
                 actions.appendChild(hideBtn);
-
                 const playBtn = document.createElement("button");
                 playBtn.textContent = "▶ Play";
                 playBtn.title = "Focus mode: big editable preview";
                 playBtn.onclick = () => enterFocus(f);
                 actions.appendChild(playBtn);
-
                 card.appendChild(meta);
                 card.appendChild(specimen);
                 card.appendChild(actions);
@@ -1998,11 +2015,8 @@
                 const typeFilter = fontTypeSelectEl.value;
                 let list = FONTS.filter((f) => {
                     const isHidden = hiddenFonts.has(f.id);
-                    if (hiddenOnly) {
-                        if (!isHidden) return false;
-                    } else {
-                        if (isHidden) return false;
-                    }
+                    if (hiddenOnly && !isHidden) return false;
+                    if (!hiddenOnly && isHidden) return false;
                     if (pinnedOnly && !pinned.has(f.id)) return false;
                     if (
                         typeFilter !== "all" &&
@@ -2051,7 +2065,6 @@
                     : `Showing ${list.length} of ${FONTS.length} on this page${hiddenCount ? ` (${hiddenCount} hidden globally)` : ""}`;
             }
 
-            // Slider +/- and double click behaviors
             document.querySelectorAll(".range-wrap").forEach((wrap) => {
                 const input = wrap.querySelector('input[type="range"]');
                 const minus = wrap.querySelector(".minus");
@@ -2075,89 +2088,130 @@
                         input.dispatchEvent(new Event("input"));
                     });
                 }
-
-                wrap.addEventListener("dblclick", (e) => {
+                wrap.addEventListener("dblclick", () => {
                     input.value = defVal;
                     input.dispatchEvent(new Event("input"));
                     window.getSelection().removeAllRanges();
                 });
             });
 
-            // Event wiring
+            // --- WIRING EVENT LISTENERS TO SETTINGS ---
             sampleTextEl.addEventListener("input", () => {
                 presetSelectEl.value = "";
+                settings.presetSelect = "";
+                settings.sampleText = sampleTextEl.value;
+                saveSettings();
                 updateSpecimenText();
             });
             fontSizeEl.addEventListener("input", () => {
+                settings.fontSize = fontSizeEl.value;
+                saveSettings();
                 document.getElementById("fontSizeVal").textContent =
-                    fontSizeEl.value + "px";
+                    settings.fontSize + "px";
                 applySpecimenStyles();
             });
             letterSpacingEl.addEventListener("input", () => {
+                settings.letterSpacing = letterSpacingEl.value;
+                saveSettings();
                 document.getElementById("letterSpacingVal").textContent =
-                    letterSpacingEl.value + "px";
+                    settings.letterSpacing + "px";
                 applySpecimenStyles();
             });
             lineHeightEl.addEventListener("input", () => {
+                settings.lineHeight = lineHeightEl.value;
+                saveSettings();
                 document.getElementById("lineHeightVal").textContent = (
-                    lineHeightEl.value / 100
+                    settings.lineHeight / 100
                 ).toFixed(2);
                 applySpecimenStyles();
             });
-            searchBoxEl.addEventListener("input", render);
+            searchBoxEl.addEventListener("input", () => {
+                settings.searchBox = searchBoxEl.value;
+                saveSettings();
+                render();
+            });
             formatSelectEl.addEventListener("change", () => {
                 formatPreference = formatSelectEl.value;
+                settings.formatSelect = formatPreference;
+                saveSettings();
                 styleEl.textContent = buildFontFaceCSS(formatPreference);
                 render();
             });
-            sortSelectEl.addEventListener("change", render);
-            fontTypeSelectEl.addEventListener("change", render);
+            sortSelectEl.addEventListener("change", () => {
+                settings.sortSelect = sortSelectEl.value;
+                saveSettings();
+                render();
+            });
+            fontTypeSelectEl.addEventListener("change", () => {
+                settings.fontTypeSelect = fontTypeSelectEl.value;
+                saveSettings();
+                render();
+            });
             presetSelectEl.addEventListener("change", () => {
                 const val = presetSelectEl.value;
-                if (val && val !== "name" && PRESETS[val])
+                settings.presetSelect = val;
+                if (val && val !== "name" && PRESETS[val]) {
                     sampleTextEl.value = PRESETS[val];
+                    settings.sampleText = PRESETS[val];
+                }
+                saveSettings();
                 updateSpecimenText();
             });
             boldToggleEl.addEventListener("click", () => {
                 forceBold = !forceBold;
+                settings.forceBold = forceBold;
+                saveSettings();
                 boldToggleEl.classList.toggle("active", forceBold);
                 applySpecimenStyles();
             });
             italicToggleEl.addEventListener("click", () => {
                 forceItalic = !forceItalic;
+                settings.forceItalic = forceItalic;
+                saveSettings();
                 italicToggleEl.classList.toggle("active", forceItalic);
                 applySpecimenStyles();
             });
             uppercaseToggleEl.addEventListener("click", () => {
                 forceUppercase = !forceUppercase;
+                settings.forceUppercase = forceUppercase;
+                saveSettings();
                 uppercaseToggleEl.classList.toggle("active", forceUppercase);
                 applySpecimenStyles();
             });
             colorToggleEl.addEventListener("click", () => {
                 colorizeText = !colorizeText;
+                settings.colorizeText = colorizeText;
+                saveSettings();
                 colorToggleEl.classList.toggle("active", colorizeText);
                 applySpecimenStyles();
-                if (focusModeEl.classList.contains("active")) {
+                if (focusModeEl.classList.contains("active"))
                     applyFocusStyles();
-                }
             });
             pinnedOnlyEl.addEventListener("click", () => {
                 pinnedOnly = !pinnedOnly;
+                settings.pinnedOnly = pinnedOnly;
+                saveSettings();
                 pinnedOnlyEl.classList.toggle("active", pinnedOnly);
                 render();
             });
             hiddenOnlyEl.addEventListener("click", () => {
                 hiddenOnly = !hiddenOnly;
+                settings.hiddenOnly = hiddenOnly;
+                saveSettings();
                 hiddenOnlyEl.classList.toggle("active", hiddenOnly);
                 render();
             });
             viewToggleEl.addEventListener("click", () => {
                 listView = !listView;
+                settings.listView = listView;
+                saveSettings();
                 grid.classList.toggle("list-view", listView);
                 viewToggleEl.classList.toggle("active", listView);
             });
             wrapToggleEl.addEventListener("click", () => {
                 nowrapMode = !nowrapMode;
+                settings.nowrapMode = nowrapMode;
+                saveSettings();
                 wrapToggleEl.classList.toggle("active", nowrapMode);
                 applySpecimenStyles();
             });
@@ -2169,32 +2223,37 @@
                 localStorage.setItem(THEME_KEY, next);
             });
 
-            // Reset All logic
             resetAllBtn.addEventListener("click", () => {
-                sampleTextEl.value =
-                    "The quick brown fox jumps over the lazy dog — 0123456789";
-                presetSelectEl.value = "";
-                searchBoxEl.value = "";
-                formatSelectEl.value = "auto";
-                sortSelectEl.value = "name";
-                fontTypeSelectEl.value = "all";
+                settings = { ...defaultSettings };
+                saveSettings();
 
-                fontSizeEl.value = 32;
-                letterSpacingEl.value = 0;
-                lineHeightEl.value = 125;
+                sampleTextEl.value = settings.sampleText;
+                presetSelectEl.value = settings.presetSelect;
+                searchBoxEl.value = settings.searchBox;
+                formatSelectEl.value = settings.formatSelect;
+                sortSelectEl.value = settings.sortSelect;
+                fontTypeSelectEl.value = settings.fontTypeSelect;
 
-                document.getElementById("fontSizeVal").textContent = "32px";
-                document.getElementById("letterSpacingVal").textContent = "0px";
-                document.getElementById("lineHeightVal").textContent = "1.25";
+                fontSizeEl.value = settings.fontSize;
+                letterSpacingEl.value = settings.letterSpacing;
+                lineHeightEl.value = settings.lineHeight;
 
-                forceBold = false;
-                forceItalic = false;
-                forceUppercase = false;
-                colorizeText = false;
-                pinnedOnly = false;
-                hiddenOnly = false;
-                listView = false;
-                nowrapMode = false;
+                document.getElementById("fontSizeVal").textContent =
+                    settings.fontSize + "px";
+                document.getElementById("letterSpacingVal").textContent =
+                    settings.letterSpacing + "px";
+                document.getElementById("lineHeightVal").textContent = (
+                    settings.lineHeight / 100
+                ).toFixed(2);
+
+                forceBold = settings.forceBold;
+                forceItalic = settings.forceItalic;
+                forceUppercase = settings.forceUppercase;
+                colorizeText = settings.colorizeText;
+                pinnedOnly = settings.pinnedOnly;
+                hiddenOnly = settings.hiddenOnly;
+                listView = settings.listView;
+                nowrapMode = settings.nowrapMode;
 
                 boldToggleEl.classList.remove("active");
                 italicToggleEl.classList.remove("active");
@@ -2204,13 +2263,13 @@
                 hiddenOnlyEl.classList.remove("active");
                 viewToggleEl.classList.remove("active");
                 wrapToggleEl.classList.remove("active");
-                themeToggleEl.classList.remove("active");
                 grid.classList.remove("list-view");
 
                 document.body.dataset.preset = "default";
                 document.body.dataset.theme = "light";
                 localStorage.setItem(COLOR_PRESET_KEY, "default");
                 localStorage.setItem(THEME_KEY, "light");
+                themeToggleEl.classList.remove("active");
                 updateThemeCircles("default");
 
                 formatPreference = "auto";
@@ -2221,7 +2280,6 @@
                 render();
             });
 
-            // Color preset circle switcher
             function updateThemeCircles(val) {
                 themeCircles.forEach((btn) => {
                     btn.classList.toggle("active", btn.dataset.value === val);
@@ -2237,7 +2295,6 @@
                 });
             });
 
-            // Sticky-header minimizer logic
             function updateHeaderCollapseUI() {
                 const shouldCollapse = headerCollapsed;
                 headerEl.classList.toggle("header-collapsed", shouldCollapse);
@@ -2259,7 +2316,6 @@
                 updateHeaderCollapseUI();
             });
 
-            // Restore theme, color preset, and header state
             const savedTheme = localStorage.getItem(THEME_KEY);
             if (savedTheme) {
                 document.body.dataset.theme = savedTheme;
